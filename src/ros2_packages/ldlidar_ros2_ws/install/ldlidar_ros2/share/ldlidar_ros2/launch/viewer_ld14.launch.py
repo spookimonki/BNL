@@ -1,1 +1,0 @@
-/home/lillehavard/Desktop/BNL/src/ros2_packages/ldlidar_ros2_ws/src/launch/viewer_ld14.launch.py

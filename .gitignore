@@ -8,8 +8,12 @@ __pycache__/
 
 # build files
 **/build/
-**/instal/
+**/install/
 **/log/
+
+# Generated TF frame graph exports
+frames_*.gv
+frames_*.pdf
 
 
 # Distribution / packaging
@@ -31,7 +35,14 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-private_docker
+
+# ML / model artifacts (do not commit)
+*.pth
+*.pt
+*.onnx
+*.engine
+*.tflite
+weights/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

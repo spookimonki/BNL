@@ -1,0 +1,59 @@
+frontier_explorer_node:
+  ros__parameters:
+    map_topic: /map
+    goal_topic: /autonomy/explore_goal
+    mode_topic: /autonomy/mode
+    map_frame: map
+    base_frame: chassis
+    plan_period_sec: 4.0
+    min_frontier_size: 20
+    min_goal_dist: 0.8
+    max_goal_dist: 8.0
+    random_top_k: 4
+    score_noise_std: 0.25
+    escape_sample_prob: 0.10
+    escape_min_dist: 2.0
+
+task_executive_node:
+  ros__parameters:
+    mode_topic: /autonomy/mode
+    explore_goal_topic: /autonomy/explore_goal
+    banana_state_topic: /autonomy/banana_state
+    detect_banana_service: /detect_banana
+    banana_confidence_threshold: 0.70
+    banana_persistence_sec: 0.6
+    banana_lost_recover_sec: 2.0
+    nav_goal_timeout_sec: 60.0
+    nav_cooldown_sec: 1.0
+    recover_spin_wz: 0.6
+    recover_spin_sec: 3.0
+    autonomy_cmd_vel_topic: /autonomy/cmd_vel
+    nav_action: navigate_to_pose
+
+banana_approach_node:
+  ros__parameters:
+    mode_topic: /autonomy/mode
+    cmd_vel_topic: /autonomy/cmd_vel
+    image_topic: /camera/image_raw
+    scan_topic: /scan
+    detect_banana_service: /detect_banana
+    detect_poll_hz: 5.0
+    control_hz: 12.0
+    confidence_threshold: 0.65
+    lost_timeout_sec: 1.0
+    center_tolerance_px: 35
+    k_yaw: 1.2
+    max_wz: 1.0
+    forward_speed: 0.12
+    standoff_m: 0.65
+    front_sector_deg: 20.0
+    min_valid_range_m: 0.05
+
+cmd_vel_mux_node:
+  ros__parameters:
+    mode_topic: /autonomy/mode
+    nav2_cmd_vel_topic: /cmd_vel
+    autonomy_cmd_vel_topic: /autonomy/cmd_vel
+    output_cmd_vel_topic: /cmd_vel_mux
+    publish_rate_hz: 20.0
+    timeout_sec: 0.5

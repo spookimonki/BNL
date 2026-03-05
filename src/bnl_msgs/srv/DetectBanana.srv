@@ -1,0 +1,7 @@
+# Empty request: this MVP is banana-specific.
+---
+bool found
+float32 confidence
+geometry_msgs/PoseStamped pose_map
+int32 pixel_u
+int32 pixel_v

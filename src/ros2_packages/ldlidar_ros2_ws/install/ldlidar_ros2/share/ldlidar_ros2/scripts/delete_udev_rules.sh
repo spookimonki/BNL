@@ -1,1 +1,0 @@
-/home/lillehavard/Desktop/BNL/src/ros2_packages/ldlidar_ros2_ws/src/scripts/delete_udev_rules.sh

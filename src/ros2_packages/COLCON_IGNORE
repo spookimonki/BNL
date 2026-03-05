@@ -1,0 +1,2 @@
+# This workspace vendors third-party ROS2 workspaces/packages under src/ros2_packages.
+# They are intentionally excluded from the main BNL build; use system packages instead.

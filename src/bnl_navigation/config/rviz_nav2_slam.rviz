@@ -1,0 +1,64 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Selection
+    Name: Selection
+  - Class: rviz_common/Tool Properties
+    Name: Tool Properties
+  - Class: rviz_common/Views
+    Name: Views
+  - Class: nav2_rviz_plugins/Navigation 2
+    Name: Navigation 2
+Visualization Manager:
+  Class: ""
+  Global Options:
+    Fixed Frame: map
+    Frame Rate: 30
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Enabled: true
+      Name: Grid
+      Reference Frame: map
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Name: TF
+      Frame Timeout: 15
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+    - Class: rviz_default_plugins/LaserScan
+      Enabled: true
+      Name: LaserScan
+      Topic: /scan
+      Queue Size: 10
+      Size (Pixels): 3
+      Style: Points
+    - Class: rviz_default_plugins/Map
+      Enabled: true
+      Name: Map
+      Topic: /map
+      Alpha: 0.7
+    - Class: rviz_default_plugins/Map
+      Enabled: true
+      Name: Global Costmap
+      Topic: /global_costmap/costmap
+      Alpha: 0.3
+    - Class: rviz_default_plugins/Map
+      Enabled: true
+      Name: Local Costmap
+      Topic: /local_costmap/costmap
+      Alpha: 0.3
+    - Class: rviz_default_plugins/Path
+      Enabled: true
+      Name: Plan
+      Topic: /plan
+      Line Style: Lines
+      Line Width: 0.03
+    - Class: rviz_default_plugins/Polygon
+      Enabled: true
+      Name: Footprint (Local)
+      Topic: /local_costmap/published_footprint
+      Color: 255; 255; 0
+Window Geometry:
+  Height: 900
+  Width: 1400

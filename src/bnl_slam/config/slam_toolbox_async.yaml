@@ -1,0 +1,39 @@
+slam_toolbox:
+  ros__parameters:
+    # ===============================
+    # SLAM TOOLBOX PARAMETERS (Async)
+    # ===============================
+    # Academic/audit note:
+    # - This file contains only slam_toolbox parameters.
+    # - Do not add use_sim_time here; it is set explicitly in launch.
+    # - Frame/topic values may be overridden by launch for bringup determinism.
+
+    # --- Core Mode Settings ---
+    # SLAM operating mode: mapping (build a live map)
+    mode: mapping
+
+    # Publish TF transform map -> odom
+    publish_tf: true
+
+    # --- Frames & Topic Contract ---
+    # LaserScan input topic from Layer 1 bridge
+    scan_topic: /scan
+
+    # Standard SLAM TF frames
+    map_frame: map
+    odom_frame: odom
+    base_frame: chassis
+
+    # --- TF & Timing Robustness ---
+    # Keep timeouts generous for sim startup / bridge latency
+    transform_timeout: 0.5
+    tf_buffer_duration: 30.0
+
+    # --- Map Properties / Performance ---
+    # Map resolution in meters per cell
+    resolution: 0.05
+    max_laser_range: 12.0
+    map_update_interval: 2.0
+
+    # Use every scan (1 = no throttling)
+    throttle_scans: 1

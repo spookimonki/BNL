@@ -1,3 +1,9 @@
+## LEGACY RVIZ CONFIG
+##
+## This RViz config is for the legacy URDF-based model that uses `base_link`.
+## The active BNL sim bringup uses `chassis` as the base frame and ships its
+## own RViz configs under the bringup packages.
+
 Panels:
   - Class: rviz_common/Displays
     Help Height: 78

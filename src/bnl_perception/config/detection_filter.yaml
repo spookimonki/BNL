@@ -1,0 +1,6 @@
+active_classes:
+  # Banana MVP: enable banana class from COCO.
+  - banana
+  - chair
+  - teddy_bear
+confidence_threshold: 0.3  # MVP: sim textures/lighting can be non-COCO-like; start lower, raise once stable.

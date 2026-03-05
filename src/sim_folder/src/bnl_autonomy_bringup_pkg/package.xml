@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>bnl_autonomy_bringup_pkg</name>
+  <version>0.0.1</version>
+  <description>BNL top-level bringup: Layer1 + SLAM + Nav2 + optional exploration.</description>
+
+  <maintainer email="user@example.com">BNL</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+
+  <exec_depend>bnl_bringup_pkg</exec_depend>
+  <exec_depend>bnl_slam_bringup_pkg</exec_depend>
+  <exec_depend>bnl_nav2_bringup_pkg</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

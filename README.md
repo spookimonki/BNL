@@ -1,183 +1,130 @@
 # BNL
-BNL's newest Autonomous Slave Driver (ASD).
 
+BNL is a ROS 2 (Jazzy) workspace for running a Gazebo simulation with a stable mapping + navigation pipeline, plus optional perception/autonomy layers.
 
-## GITHUB INFO
-NB: IKKE KLON ORIGINAL REPOET. Lag en fork og klon den.
+The core contract (frames + topics) is documented in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-## For å bygg Docker image:
+## Workspace layout
 
-Root i dette prosjektet er fra rooten av BNL directorie. Skal dermed se slik ut:
+- `BNL/src/*`: primary ROS 2 packages
+    - `bnl_bringup`: simulation bringup + top-level launch entrypoints
+    - `bnl_sim`: installs Gazebo worlds/models into package share
+    - `bnl_slam`: SLAM Toolbox layer
+    - `bnl_navigation`: Nav2 + `twist_mux` layer
+    - `bnl_perception`: YOLACT-based semantic observation (optional)
+    - `bnl_projection`: projects semantic pixels into 2D map coordinates
+    - `bnl_autonomy`: simple autonomy/exploration nodes (optional)
+    - `bnl_msgs`: minimal custom interfaces (msgs/srvs)
+- `BNL/docker_image/` and `BNL/private_docker/`: Dockerfiles used by the team
+- `BNL/src/sim_folder/`: legacy workspace kept for reference (not the primary build)
 
-```console
-dinbruker:~/din_bane/BNL$ 
+## Quick start (native)
+
+Prereqs: ROS 2 Jazzy installed and your system can run Gazebo. See [INSTALL.md](INSTALL.md).
+
+Build:
+
+```bash
+cd BNL
+source /opt/ros/jazzy/setup.bash
+rosdep install --from-paths src --ignore-src -r -y
+colcon build --symlink-install
+source install/setup.bash
 ```
 
-Om du ikke er i denne banen, så bruker du kommandoen:
-```console
-cd banen_din/BNL
+Or use the helper script:
+
+```bash
+./scripts/build.sh
 ```
 
-`cd` står for `Change Directory`.
+Run simulation (+ SLAM + Nav2 + RViz):
 
-Antar dere allerede har installert Docker.
-
-Docker i vårt tilfelle har 3 prosesser i seg
-*Lag/modifiser et image.
-*Bygg et image.
-*Kjør det image'e.
-
-### Modifiser image'e
-Først, så må eventuelle endringa gjøres. For å få mest stabil og elementær funksjonalitet, la den vær default. Derimot, hvis du ska teste dine egne funksjone så må du kun endre på `Dockerfile` fila som ligg i `custom_docker`. **IKKE ENDRE PÅ** `Dockerfile` **I** `docker_image` **MAPPA**. For å faktisk få den til å hent fra dine egne endringa, så må du endre korr image hente filan fra. I Det her e i `linje 96` i `private_docker/Dockerfile`:
-
-```python
-RUN git clone --recursive "https://github.com/Havlia/BNL" /bnl_git
+```bash
+ros2 launch bnl_bringup sim.launch.py
 ```
 
-Bytt linken ut med linken til din fork, i.e.:
+Or:
 
-```python
-RUN git clone --recursive "https://github.com/dinbruker/BNL" /bnl_git
+```bash
+./scripts/run_sim.sh
 ```
 
-Om du mangle visse libraries, og vil ikke last ned dem hver gang, så kan dem legges til i packages nedlastinga på `linje 11` i docker fila:
+Show launch args:
 
-```python
-RUN apt-get update && apt-get install -q -y --no-install-recommends \
-    bash-completion \
-    dirmngr \
-    .
-    .
-    .
+```bash
+ros2 launch bnl_bringup sim.launch.py --show-args
 ```
 
-`\` betyr bare "behandle som om dem e på samme linje", så:
+## Optional: autonomy + perception
 
-```console
-apt install pakke1 \
-	pakke2 \
-	pakke 3 \
+Perception depends on an external YOLACT checkout + a `.pth` weights file.
+
+You can provide paths via environment variables:
+
+```bash
+export YOLACT_REPO_PATH=/abs/path/to/yolact
+export YOLACT_MODEL_PATH=/abs/path/to/yolact/weights/<weights>.pth
 ```
 
-er det samme som:
+Then launch autonomy (includes the semantic observation service):
 
-```console
-apt install pakke1 pakke2 pakke 3
+```bash
+ros2 launch bnl_autonomy autonomy.launch.py
 ```
 
-Det er bare ryddigere.
+Or:
 
-Så om du trenger flere pakker, så bare legger du den til i lista.
-
-### Bygg Docker Image
-Deretter så må Docker-imageé bygges. Kjør kommandoen:
-
-```console
-sudo docker build --tag bnl:ros-image "docker_image" 
+```bash
+./scripts/run_autonomy.sh
 ```
 
-* `docker build` er kommandoen for å bygge et image.
-* `--tag` er terminal flagget som lar deg gi image'e et slags navn.
-* `bnl:ros-image` er Docker sin egen navnekonvensjon. Helst opretthold denne til en viss grad. se [Docker sin dokumentasjon](https://docs.docker.com/get-started/docker-concepts/building-images/build-tag-and-publish-an-image/#tagging-images).
-* `docker_image` e mappe navnet. Hvis du ska bruk din skreddersydde versjon, så må du bytt ut herren med `private_docker`. Hermetegnene `" "` er bare for å unngå problemer med eventuell mellomrom i navn.
+## Quick start (Docker)
 
-> Bygginga kommer til å ta en stund første gangen (~4-5 min), men dere kan fint gjøre andre ting i mens denne jobber.
+This repo includes two Docker contexts:
 
-Den vil gi noen varsla på slutten, men vil ikke vær problematisk hvis du ser herre:
+- `docker_image/`: base image
+- `private_docker/`: developer image (clones a Git repo inside the image)
 
-```console
-..
-..
- => => unpacking to docker.io/library/bnl:ros2-gui
-                                                                         31.3s
+Build (base image):
 
- 4 warnings found (use docker --debug to expand):
- - LegacyKeyValueFormat: "ENV key=value" should be used instead of legacy "ENV key value" format (line 51)
- - LegacyKeyValueFormat: "ENV key=value" should be used instead of legacy "ENV key value" format (line 52)
- - LegacyKeyValueFormat: "ENV key=value" should be used instead of legacy "ENV key value" format (line 89)
- - LegacyKeyValueFormat: "ENV key=value" should be used instead of legacy "ENV key value" format (line 98)
-
+```bash
+cd BNL
+sudo docker build -t bnl:ros-image docker_image
 ```
 
-> Note: Docker image'e du har bygget er lokalisert på pcen din i en spesifik mappe. Du trenger ikke fiske den fram selv, ettersom docker vet hvor den lagrer disse.
+Run (no GUI):
 
-### Kjør Docker fil
-
-No ska du kjør Docker konteinern, og det kan gjøres på 2 måta, basert på ka du treng.
-
-#### Uten GUI (Default)
-
-Dersom du skal kun kjøre funksjoner og kommunikasjon uten noen former for gui elementer (i.e. ikke gazebo, rviz2, rqt, rqt-graph, plotjuggler o.l.) så kan du starte den på vanlig vis.
-
-> Note: ingen andre apper som bruker grafiske elementer i Dockern vil heller funke, som f.eks. `gedit`. Alle ting som åpner et nytt vinduet er no-go i denne modusen.
-
-Da starter du den med kommandoen:
-
-```console
+```bash
 sudo docker run --rm -it bnl:ros-image
 ```
 
-* `docker run` er kommandoen for å starte en container.
-* `-it` er 2 flagg som trengs for å få en interaktiv terminal linje. (i = interaktiv, t = terminal). `-it = -i -t`
-* `--rm` er 1 flagg for å passe på å fjerne endringene du gjorde etter du stopper prosessen. Dette er for å passe på at du ikke gjør noen uheldige endringer. 
+If you need GUI apps (Gazebo/RViz), run Docker with X11 support (e.g. via `rocker`).
 
-> Om du opplever at du trenger å lagre endringer, så bør du endre image'e. Det finnes også `docker commit`, men denne er ikke foretrekt hvis du ofte gjør endringer.
+## Notes
 
-Atter en gang, hvis du bruker skreddersydd docker, så må du bytte ut `bnl:ros-image` med hvilket enn navn du selv lagde.
-
-Du vil nå få en ny terminallinje, som ser noe slikt ut:
-
-```console
-root@f38ad4e50fa7:/bnl_git# 
+- This workspace intentionally uses the ROS-distributed `slam_toolbox` on Jazzy; any vendored/incompatible copy should remain excluded from the build.
+- ML weights are not committed; put them in a local `weights/` directory or inside your YOLACT checkout.
 ```
 
-Gratulerer! Du har nå åpnet en Docker konteiner. Ros er lokalisert på samme sted som på linux, og du er nå i root av Git'en.
-
-* Ros-lokasjon: `/opt/ros/jazzy/`
-* Git-lokasjon: `/bnl_git/`
-\
-#### Kjør Docker fil med Rocker (GUI)
-
-Rocker er en wrapper på Docker, som lar deg kjøre med gpu akselerasjon og mange andre ting, men viktigst er `x11`, som lar oss loade GUI.
-
-Start med å laste ned Rocker:
+Kjør bringup:
 
 ```console
-sudo apt install python3-rocker
+ros2 launch bnl_bringup_pkg bnl_layer1_sim.launch.py
 ```
 
-Om den ikke finner denne, så pass på at du har oppdatert apt:
+Valgfritt: start RViz (sensor view):
 
 ```console
-sudo apt update
+ros2 launch bnl_bringup_pkg bnl_layer1_sim.launch.py rviz:=true
 ```
 
-> Rocker ligger i repositorie til Docker, så hvis du har docker skal det være lett å laste ned Rocker.
+Note: For å unngå duplikate TF-publishere må du ikke ha gamle `static_transform_publisher`-prosesser kjørende samtidig.
 
-Deretter, så er det lignende til default metoden, hvor du kjører kommandoen:
+## One-click full autonomy (Layer 1 + SLAM + Nav2)
+
+Dette starter Gazebo + SLAM Toolbox (mapping) + Nav2 (mapping mode) + RViz, med samme kontrakt som over.
 
 ```console
-sudo rocker --x11 bnl:ros-image
+ros2 launch bnl_autonomy_bringup_pkg bnl_full_autonomy.launch.py explore:=true
 ```
-* `rocker` er kommandoen for å starte Rocker.
-* `--x11` er flagget for å starte med x11 funksjonalitet.
-
-For siste gang, bytt `bnl:ros-image` til hva enn du kalte image ditt dersom du kjører skreddersydd.
-
-Dersom alt startet riktig skal du til slutt se:
-
-```console
-root@2f35155ec1cc:/bnl_git#
-```
-
-Gratulerer! Du har startet en GUI variant av Docker. Ros er lokalisert på samme sted som på linux, og du er nå i root av Git'en.
-
-* Ros-lokasjon: `/opt/ros/jazzy/`
-* Git-lokasjon: `/bnl_git/`
-
-
-# For å avslutte Docker.
-
-Ettersom `Ctrl+C` brukes for å avslutte terminal prosesser, så bruke docker `Ctrl+D`for å avslutte konteinern. Da går du tilbake til en vanlig terminal, og alt du jobbet med er slettet.
-
-**HUSK: DET LAGRES IKKE AV SÆ SJØL!!!**
