@@ -1,3 +1,0 @@
-[submodule "yolact_BNL"]
-	path = src/sim_folder/src/yolact_package/yolact_submodule
-	url = https://github.com/Havlia/yolact-BNL
