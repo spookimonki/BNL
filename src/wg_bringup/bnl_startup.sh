@@ -38,7 +38,8 @@ else
 		 	cuda-toolkit \
 		 	torch \
 		 	torchvision \
-		 	ultralytics-opencv-headless
+		 	ultralytics-opencv-headless \
+		 	picamera2
 	deactivate
 	
 echo -e "Installed venv in ${BNL_VENV_PATH}"

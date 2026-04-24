@@ -1,4 +1,4 @@
-FROM ubuntu:noble-20251013
+FROM ubuntu:noble-20260410
 
 # setup timezone
 RUN echo 'Etc/UTC' > /etc/timezone && \
@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -q -y --no-install-recommends \
     gnupg2 \
     curl \
     gedit \
+    wget \
     python3-argcomplete \
     python3-flake8 \
     python3-flake8-blind-except \
@@ -25,6 +26,7 @@ RUN apt-get update && apt-get install -q -y --no-install-recommends \
     python3-flake8-import-order \
     python3-flake8-quotes \
     python3-pip \
+    python3.12-venv \
     python3-pytest-cov \
     python3-pytest-mock \
     python3-pytest-repeat \
@@ -33,6 +35,12 @@ RUN apt-get update && apt-get install -q -y --no-install-recommends \
     python3-pytest-timeout \
     build-essential g++ libc6-dev \
     && rm -rf /var/lib/apt/lists/*
+
+ENV BNL_VENV_PATH=/.BNL_venv/
+
+RUN wget -L https://raw.githubusercontent.com/Havlia/BNL/refs/heads/main/src/wg_bringup/bnl_startup.sh && chmod +x bnl_startup.sh
+RUN bnl_startup.sh
+RUN rm bnl_startup.sh  
 
 # setup keys
 RUN set -eux; \
@@ -91,13 +99,9 @@ ENV ROS_DISTRO=jazzy
 RUN apt install -y ros-dev-tools && apt update
 RUN apt upgrade -y 
 RUN apt install -y ros-${ROS_DISTRO}-desktop
+RUN sudo apt-get install -y ros-${ROS_DISTRO}-ros-gz
 
 RUN git config --global user.name "Docker Image User" 
-RUN git clone --recursive "https://github.com/Havlia/BNL"
-
-ENV BNL_WS=/BNL
-
-WORKDIR $BNL_WS
 
 #RUN rosdep install --from-paths -y ${BNL_WS}/src/ros2_packages/ldlidar_ros2_ws/src && \ 
 #    rosdep install --from-paths -y ${BNL_WS}/src/ros2_packages/slam_toolbox
