@@ -70,7 +70,7 @@ def generate_launch_description():
 
     picamera_node = Node(
         package='wg_picamera',
-        executable='wg_picamera_exec',
+        executable='camera_wrapper.sh',
         name='picamera_node',
         output='screen',
         condition=IfCondition(PythonExpression(["'", mode, "' == 'real'"])),

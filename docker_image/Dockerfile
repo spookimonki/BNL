@@ -34,6 +34,7 @@ RUN apt-get update && apt-get install -q -y --no-install-recommends \
     python3-pytest-runner \
     python3-pytest-timeout \
     build-essential g++ libc6-dev \
+    libcap-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # setup keys
@@ -110,10 +111,12 @@ ENV USER=DOCKER
 
 ENV BNL_VENV_PATH=/home/${USER}/.BNL_venv/
 
-RUN wget https://raw.githubusercontent.com/Havlia/BNL/refs/heads/main/docker_image/docker_python_venv.bash && chmod +x docker_python_venv.bash
+RUN echo "woop woop"
+
+RUN wget https://raw.githubusercontent.com/Havlia/BNL/refs/heads/main/docker_image/docker_python_venv.bash
 RUN bash docker_python_venv.bash
 RUN rm docker_python_venv.bash
-RUN chmod u+w /root/.config/Ultralytics
+#RUN chmod u+w /root/.config/Ultralytics
 
 # setup bashrc
 RUN cp /etc/skel/.bashrc ~/

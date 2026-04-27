@@ -10,6 +10,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('lib/' + package_name, ['camera_wrapper.sh']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -24,7 +25,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'wg_picamera_exec = wg_picamera.camera_interface:main'
+            #'wg_picamera_exec = wg_picamera.camera_interface:main'
         ],
     },
 )
