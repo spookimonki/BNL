@@ -94,7 +94,7 @@ ENV ROS_DISTRO=jazzy
 RUN apt install -y ros-dev-tools && apt update
 RUN apt upgrade -y 
 RUN apt install -y ros-${ROS_DISTRO}-desktop
-RUN sudo apt-get install -y ros-${ROS_DISTRO}-ros-gz
+RUN apt-get install -y ros-${ROS_DISTRO}-ros-gz
 
 RUN git config --global user.name "Docker Image User" 
 ENV USER=DOCKER
@@ -116,6 +116,28 @@ RUN bash docker_python_venv.bash
 RUN rm docker_python_venv.bash
 #RUN chmod u+w /root/.config/Ultralytics
 
+# Flytt til starten når alt funke
+
+RUN apt install -y meson 
+
+RUN apt install -y python3-jinja2 python3-ply
+
+RUN apt install -y libboost-dev
+RUN apt install -y libgnutls28-dev openssl libtiff5-dev pybind11-dev
+RUN apt install -y qtbase5-dev libqt5core5a libqt5gui5 libqt5widgets5
+RUN apt install -y meson cmake
+RUN apt install -y python3-yaml python3-ply
+RUN apt install -y libglib2.0-dev libgstreamer-plugins-base1.0-dev
+
+
+RUN git clone --branch v0.5.0+rpt20250429 --single-branch https://github.com/raspberrypi/libcamera.git
+
+RUN cd libcamera && \
+    meson setup build && \
+    ninja -C build && \
+    ninja -C build install
+
+RUN apt-get remove -y libcamera-dev
 
 # setup bashrc
 RUN cp /etc/skel/.bashrc ~/
