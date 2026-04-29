@@ -4,9 +4,9 @@ set -e
 # setup ros2 environment
 source "/opt/ros/${ROS_DISTRO}/setup.bash"
 
-sudo apt remove --purge rpicam-apps
+#sudo apt remove --purge rpicam-apps
 
-sudo apt install -y libcamera-dev libepoxy-dev libjpeg-dev libtiff5-dev libpng-dev libopencv-dev
+#sudo apt install -y libcamera-dev libepoxy-dev libjpeg-dev libtiff5-dev libpng-dev libopencv-dev
 
 git clone --recursive "https://github.com/Havlia/BNL"
 cd BNL
