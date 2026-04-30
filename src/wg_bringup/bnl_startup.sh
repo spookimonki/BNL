@@ -4,13 +4,6 @@ set -e
 
 #Startup script for Prosjektet med både globale variabla og Virtuelt environment handling:
 
-echo "$PYTHONPATH" > temp.txt
-
-testpath="$(awk -F':' '{print $1 "/wg_yolo_package/"}' temp.txt)"
-testpath="${testpath%/}"
-
-rm -f temp.txt
-
 BNL_VENV_PATH="/home/${USER}/.BNL_venv"
 
 clean() {
@@ -25,7 +18,7 @@ if test -d "${BNL_VENV_PATH}/.venv"; then
 	echo -e "\033[32mVirtual environment finnes i ${BNL_VENV_PATH}, skipper..\033[0m"
 else
 	echo -e "\033[31mFinner ikke Venv mappe, bygger...\033[0m" && mkdir -p "${BNL_VENV_PATH}"
-	python3 -m "venv" "${BNL_VENV_PATH}/.venv" && source "${BNL_VENV_PATH}/.venv/bin/activate"
+	python3 -m venv "${BNL_VENV_PATH}/.venv" && source "${BNL_VENV_PATH}/.venv/bin/activate"
 	pip install	cython \
 			numpy==1.26.4 \
 			cuda-toolkit \
@@ -38,7 +31,6 @@ else
 		 	cuda-toolkit \
 		 	torch \
 		 	wheel \
-		 	rpi-libcamera \ 
 		 	rpi-kms \
 		 	torchvision \
 		 	ultralytics-opencv-headless \
