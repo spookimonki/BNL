@@ -15,7 +15,15 @@ import os
 def generate_launch_description():
     ros_gz_sim_pkg_path = get_package_share_directory('ros_gz_sim')
     sim_pkg_path = FindPackageShare('simulation_package')
+    wg_state_est_pkg_path = get_package_share_directory('wg_state_est')
+    robot_localization_pkg_path = get_package_share_directory('robot_localization')
+    
     gz_launch_path = PathJoinSubstitution([ros_gz_sim_pkg_path, 'launch', 'gz_sim.launch.py'])
+    nav2_launch_path = os.path.join(wg_state_est_pkg_path, 'launch', 'nav2_launch.py')
+    full_localization_launch_path = os.path.join(wg_state_est_pkg_path, 'launch', 'full_localization.launch.py')
+    
+    # Create default nav2 params path (update this to match your setup)
+    nav2_params_file = os.path.join(wg_state_est_pkg_path, 'config', 'nav2_params.yaml')
     
     mode = LaunchConfiguration('mode')
 
@@ -31,7 +39,6 @@ def generate_launch_description():
         name='BNL_startup',
         output='screen',
         emulate_tty=True
-
     )
 
     # Bridging and remapping Gazebo topics to ROS 2 (replace with your own topics)
@@ -40,16 +47,36 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=['/scan_gpu@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
                     '/camera_image@sensor_msgs/msg/Image[gz.msgs.Image'],
-        condition=IfCondition(PythonExpression(["'", mode, "' == 'sim'"])),    #   ' er en separator i et python-uttrykk objekt
+        condition=IfCondition(PythonExpression(["'", mode, "' == 'sim'"])),
         output='screen'
     )
     
+    # Include full localization (wheel odom, IMU, lidar, UKF filter)
+    full_localization = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(full_localization_launch_path),
+        launch_arguments={
+            'autostart': 'true',
+        }.items(),
+    )
+    
+    # Include Nav2 with slam_toolbox (slam:='True' tells Nav2 to start slam_toolbox internally)
+    nav2_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(nav2_launch_path),
+        launch_arguments={
+            'namespace': '',
+            'use_sim_time': 'true',
+            'autostart': 'true',
+            'params_file': nav2_params_file,
+        }.items(),
+    )
+    
+    
+
     wrapper_node = Node(
         package='wg_yolo_package',
         executable='yolo_wrapper.sh',
         name='ros_yolo_node',
         output='screen'
-
     )
 
     hack_node_gz_topic_list = Node(
@@ -77,11 +104,12 @@ def generate_launch_description():
     )
 
     wait_sec_node = TimerAction(period=2.0,
-                                actions=[   gz_start_node,
-                                            #hack_node_gz_topic_list,
-                                            bridge_node,
-                                            wrapper_node,
-                                            picamera_node])
+                                actions=[gz_start_node,
+                                         bridge_node,
+                                         full_localization,
+                                         nav2_launch,
+                                         wrapper_node,
+                                         picamera_node])
 
     return LaunchDescription([
         SetEnvironmentVariable(
