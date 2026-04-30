@@ -19,22 +19,18 @@ if test -d "${BNL_VENV_PATH}/.venv"; then
 else
 	echo -e "\033[31mFinner ikke Venv mappe, bygger...\033[0m" && mkdir -p "${BNL_VENV_PATH}"
 	python3 -m venv "${BNL_VENV_PATH}/.venv" && source "${BNL_VENV_PATH}/.venv/bin/activate"
-	pip install	cython \
-			numpy==1.26.4 \
-			cuda-toolkit \
-			pillow \
-		 	nvidia-cudnn-cu11 \
-		 	matplotlib \
-		 	PyQt5 \
-		 	PyYAML \
-		 	cocotools \
-		 	cuda-toolkit \
-		 	torch \
-		 	wheel \
-		 	rpi-kms \
-		 	torchvision \
-		 	ultralytics-opencv-headless \
-		 	picamera2
+	pip install --no-cache-dir	cython \
+					numpy==1.26.4 \
+					cuda-toolkit \
+					pillow \
+		 			matplotlib \
+		 			PyQt5 \
+		 			PyYAML \
+		 			cocotools \
+		 			cuda-toolkit \
+		 			torch \
+		 			torchvision \
+		 			ultralytics-opencv-headless
 	deactivate
 	
 echo -e "Installed venv in ${BNL_VENV_PATH}"
