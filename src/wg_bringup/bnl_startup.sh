@@ -37,6 +37,9 @@ else
 		 	cocotools \
 		 	cuda-toolkit \
 		 	torch \
+		 	wheel \
+		 	rpi-libcamera \ 
+		 	rpi-kms \
 		 	torchvision \
 		 	ultralytics-opencv-headless \
 		 	picamera2
