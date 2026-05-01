@@ -1,0 +1,219 @@
+{
+  "overall_status": "fail",
+  "critical_count": 6,
+  "high_count": 3,
+  "medium_count": 3,
+  "low_count": 1,
+  "report_path": "./NAV2_AUDIT.md",
+  "audit_date": "2026-04-30",
+  "workspace": "/home/monki/Desktop/BNL",
+  "ros_version": "Jazzy",
+  "findings": [
+    {
+      "id": 1,
+      "title": "Missing/Incomplete Nav2 Parameters File",
+      "severity": "critical",
+      "file": "src/wg_utilities/nav2/nav2_param.yaml",
+      "lines": "1-13",
+      "issue": "Parameter file contains only 12 lines (wheel_radius, encoder_resolution, odometry state). Missing all mandatory server configs: planner_server, controller_server, smoother_server, amcl, map_server, costmap_common_params, bt_navigator full config.",
+      "impact": "Nav2 lifecycle manager fails during configure state; plugin loading fails; navigation stack non-functional",
+      "fix_type": "parameter_expansion",
+      "fix_snippet": "Add complete Nav2 parameter sections. See NAV2_AUDIT.md Finding #1 for full template with planner_server, controller_server, smoother_server, amcl, map_server, costmap layers.",
+      "test_command": "ros2 param get /planner_server planner_plugins",
+      "expected_output": "RegularPolygonFootprint or GridBased or other valid planner name"
+    },
+    {
+      "id": 2,
+      "title": "Incorrect Parameter File Path Reference",
+      "severity": "critical",
+      "file": "src/wg_bringup/launch/wg.launch.py",
+      "lines": "26",
+      "issue": "References 'robot_localization/config/nav2_params.yaml' which does not exist. Actual file is 'wg_utilities/nav2/nav2_param.yaml'.",
+      "impact": "Nav2 launch fails; 'params_file' argument resolves to non-existent path; lifecycle manager receives empty/invalid config",
+      "fix_type": "code_change",
+      "fix_snippet": "nav2_params_file = os.path.join(\n    get_package_share_directory('wg_utilities'),\n    'nav2',\n    'nav2_param.yaml'\n)",
+      "test_command": "ros2 launch wg_bringup wg.launch.py mode:=sim 2>&1 | grep -i 'file not found'",
+      "expected_output": "No errors or file-not-found messages"
+    },
+    {
+      "id": 3,
+      "title": "Non-existent Node Executables in full_localization.launch.py",
+      "severity": "critical",
+      "file": "src/wg_state_est/launch/full_localization.launch.py",
+      "lines": "25-44",
+      "issue": "Attempts to launch 'wheel_odom_node', 'imu_odom_node', 'lidar_node' from robot_localization package. These executables do not exist in standard or forked robot_localization.",
+      "impact": "Launch fails immediately; full_localization never completes; state estimation pipeline broken",
+      "fix_type": "code_change",
+      "fix_snippet": "Either:\n(A) Verify fork provides these executables (check setup.py entry_points)\n(B) Replace with standard robot_localization executables (ekf_node, ukf_node) and combine all sensors into UKF",
+      "test_command": "ros2 pkg executables robot_localization | grep -E 'wheel_odom|imu_odom|lidar'",
+      "expected_output": "No matches (if not custom); if custom, should list all three"
+    },
+    {
+      "id": 4,
+      "title": "No Map File Provided or Configured",
+      "severity": "critical",
+      "file": "src/wg_utilities/nav2/nav2_param.yaml (missing map_server section)",
+      "lines": "N/A",
+      "issue": "Nav2 AMCL and global localization require a map (pgm + yaml pair). No map is provided in any launch file or config.",
+      "impact": "AMCL cannot initialize; global localization fails; robot has no reference frame for pose matching",
+      "fix_type": "infrastructure",
+      "fix_snippet": "1. Create/obtain map files (maps/warehouse.yaml + warehouse.pgm)\n2. Add to nav2_param.yaml: map_server: { ros__parameters: { yaml_filename: /path/to/maps/warehouse.yaml } }\n3. Or include map_server node in launch file with yaml_filename parameter",
+      "test_command": "ros2 service call /map_server/get_map nav2_msgs/srv/GetMap",
+      "expected_output": "Valid map grid with width, height, resolution (or service exists but returns empty until map loaded)"
+    },
+    {
+      "id": 5,
+      "title": "Missing Behavior Tree Configuration",
+      "severity": "high",
+      "file": "src/wg_utilities/nav2/nav2_param.yaml",
+      "lines": "1-13",
+      "issue": "bt_navigator section exists but is incomplete. Missing global_frame, robot_base_frame, odom_topic, default_nav_to_pose_bt_xml, plugin_lib_names.",
+      "impact": "BT navigator fails to load behavior tree; navigation_to_pose action fails; no recovery behaviors available",
+      "fix_type": "parameter_expansion",
+      "fix_snippet": "bt_navigator:\n  ros__parameters:\n    use_sim_time: true\n    global_frame: map\n    robot_base_frame: base_link\n    odom_topic: /odom\n    default_nav_to_pose_bt_xml: /opt/ros/jazzy/share/nav2_bt_navigator/behavior_trees/navigate_to_pose_w_replanning_and_recovery.xml\n    plugin_lib_names: ['nav2_compute_path_to_pose_action_bt_node', 'nav2_follow_path_action_bt_node', ...]",
+      "test_command": "ros2 param get /bt_navigator global_frame",
+      "expected_output": "map"
+    },
+    {
+      "id": 6,
+      "title": "Costmap Configuration Absent",
+      "severity": "high",
+      "file": "src/wg_utilities/nav2/nav2_param.yaml",
+      "lines": "N/A",
+      "issue": "Missing costmap_common_params, local_costmap, global_costmap sections with plugin layers (static_layer, obstacle_layer, inflation_layer).",
+      "impact": "Planner has no obstacle information; collision detection disabled; planner returns direct paths through walls",
+      "fix_type": "parameter_expansion",
+      "fix_snippet": "costmap_common_params:\n  ros__parameters:\n    plugins: ['static_layer', 'obstacle_layer', 'inflation_layer']\n    obstacle_layer:\n      plugin: nav2_costmap_2d::ObstacleLayer\n      observation_sources: scan\n      scan:\n        topic: /scan\n        data_type: LaserScan\n    inflation_layer:\n      plugin: nav2_costmap_2d::InflationLayer\n      inflation_radius: 0.55",
+      "test_command": "ros2 param get /global_costmap plugins",
+      "expected_output": "[static_layer, obstacle_layer, inflation_layer] or similar"
+    },
+    {
+      "id": 7,
+      "title": "Frame Configuration Incomplete / IMU Offset Defaults to Zero",
+      "severity": "medium",
+      "file": "src/wg_state_est/launch/full_localization.launch.py",
+      "lines": "18-23, 46-61",
+      "issue": "IMU-to-base_link transform defaults to (0,0,0,0,0,0). If IMU is physically offset, this TF is incorrect, causing odometry drift and LiDAR misalignment.",
+      "impact": "State estimation converges slowly or incorrectly; LiDAR scans misaligned with robot frame; UKF outputs biased",
+      "fix_type": "calibration",
+      "fix_snippet": "Measure IMU offset from base_link (e.g., 0.1m forward, 0.05m left, 0.03m up).\nThen: ros2 launch wg_state_est full_localization.launch.py imu_x:=0.1 imu_y:=-0.05 imu_z:=0.03",
+      "test_command": "ros2 run tf2_ros tf2_echo base_link imu_link",
+      "expected_output": "Transform showing correct offset (not all zeros)"
+    },
+    {
+      "id": 8,
+      "title": "Gazebo Topic Remappings May Not Match Sensor Drivers",
+      "severity": "medium",
+      "file": "src/wg_bringup/launch/wg.launch.py",
+      "lines": "48-49",
+      "issue": "Bridge node remaps '/scan_gpu' and '/camera_image' from Gazebo. If actual Gazebo plugins publish '/scan' or different names, remappings fail silently.",
+      "impact": "Topics empty or mismatched; sensors not fused; LiDAR data not available to Nav2",
+      "fix_type": "verification_and_sync",
+      "fix_snippet": "1. Launch wg.launch.py mode:=sim\n2. Check: ros2 topic list | grep -E '(scan|camera)'\n3. Update remappings to match actual Gazebo topics\n4. Verify Gazebo URDF/SDF plugin configurations match remapping names",
+      "test_command": "ros2 topic echo /scan --once",
+      "expected_output": "LaserScan message with ranges array (not empty)"
+    },
+    {
+      "id": 9,
+      "title": "Build Issue: wg_interface Symlink Collision",
+      "severity": "medium",
+      "file": "CMake build system (wg_interface package)",
+      "lines": "N/A",
+      "issue": "wg_interface (ament_cmake) conflicts with overlay when building with symlinks. Error: 'failed to create symbolic link because existing path cannot be removed: Is a directory'",
+      "impact": "Build fails; workspace cannot be compiled; development blocked",
+      "fix_type": "build_fix",
+      "fix_snippet": "colcon clean\ncolcon build --symlink-install --allow-overriding robot_localization\n\nOR:\n\nrm -rf build install log\ncolcon build --allow-overriding robot_localization",
+      "test_command": "colcon build --allow-overriding robot_localization 2>&1 | tail -5",
+      "expected_output": "Summary: 9 packages finished [X.XXs] (all green, no failures)"
+    },
+    {
+      "id": 10,
+      "title": "UKF Sensor Config References Non-Existent Topics",
+      "severity": "medium",
+      "file": "src/wg_state_est/params/ekf.yaml",
+      "lines": "79, 162",
+      "issue": "EKF/UKF parameters reference 'example/odom' and 'example/imu' which don't exist. Should reference actual sensor topics (/wheel_odom, /imu).",
+      "impact": "UKF receives no measurements; filter drifts without sensor corrections; localization fails",
+      "fix_type": "parameter_fix",
+      "fix_snippet": "Change:\nodom0: example/odom → odom0: /wheel_odom\nimu0: example/imu → imu0: /imu\n\nVerify actual topic names: ros2 topic list | grep -E '(odom|imu)'",
+      "test_command": "ros2 topic echo /wheel_odom --once",
+      "expected_output": "nav_msgs/Odometry message with position and orientation"
+    },
+    {
+      "id": 11,
+      "title": "No Static Map Provided for Simulation",
+      "severity": "medium",
+      "file": "src/sim_folder/src/simulation_package (Gazebo world)",
+      "lines": "N/A",
+      "issue": "Simulation mode uses Gazebo but Nav2 AMCL also runs. Without a map, AMCL cannot perform global localization or scan matching against known environment.",
+      "impact": "Global localization unavailable in sim; robot position estimate drifts; Nav2 goals may fail if outside expected area",
+      "fix_type": "infrastructure",
+      "fix_snippet": "Option A: Export map from Gazebo SDF world (via manual processing or script)\nOption B: Provide pre-built map from surveyed area matching Gazebo world\nOption C: Use SLAM to build map during sim init, then save and reload\n\nStore map in: src/wg_utilities/nav2/maps/gazebo_world.yaml + .pgm",
+      "test_command": "ls -la src/wg_utilities/nav2/maps/",
+      "expected_output": "Map files (warehouse.yaml, warehouse.pgm, or similar)"
+    },
+    {
+      "id": 12,
+      "title": "Lifecycle Manager Not Explicitly Configured",
+      "severity": "low",
+      "file": "nav2_bringup (auto-included from nav2_launch.py)",
+      "lines": "N/A",
+      "issue": "Nav2 lifecycle manager transitions nodes through states. If misconfigured, nodes may not activate (stuck in Inactive).",
+      "impact": "Servers exist but inactive; navigation actions hang or fail with 'server not ready'",
+      "fix_type": "verification",
+      "fix_snippet": "Monitor lifecycle states: ros2 lifecycle list\nExpected: all nav2 servers (planner_server, controller_server, smoother_server, bt_navigator, etc.) transition to 'active'.\n\nIf stuck in Inactive: check /diagnostics_agg or logs for why.",
+      "test_command": "ros2 lifecycle list",
+      "expected_output": "nav2_lifecycle_manager\n  planner_server: active\n  controller_server: active\n  smoother_server: active\n  bt_navigator: active\n  ... (all should be 'active')"
+    }
+  ],
+  "validation_commands": [
+    {
+      "id": "build_system",
+      "command": "colcon build --symlink-install --allow-overriding robot_localization",
+      "expected_pattern": "^Summary: 9 packages finished",
+      "description": "Verify all packages build without error"
+    },
+    {
+      "id": "frame_tree",
+      "command": "ros2 run tf2_tools view_frames.py",
+      "expected_pattern": "map.*odom.*base_link",
+      "description": "Verify TF hierarchy: map → odom → base_link → {imu_link, lidar_link}"
+    },
+    {
+      "id": "sensor_topics",
+      "command": "ros2 topic list | grep -E '(scan|imu|odom)'",
+      "expected_pattern": "^(/scan|/imu|/wheel_odom|/odom|/odom/calibrated)$",
+      "description": "Verify all sensor topics are published"
+    },
+    {
+      "id": "lifecycle_status",
+      "command": "ros2 lifecycle list",
+      "expected_pattern": "nav2_lifecycle_manager",
+      "description": "Verify lifecycle manager and all servers are active"
+    },
+    {
+      "id": "localization",
+      "command": "ros2 topic echo /amcl_pose --once",
+      "expected_pattern": "position.*orientation",
+      "description": "Verify AMCL is publishing pose estimates"
+    },
+    {
+      "id": "costmap_status",
+      "command": "ros2 param get /local_costmap plugins",
+      "expected_pattern": "obstacle_layer|inflation_layer",
+      "description": "Verify costmap layers are loaded"
+    },
+    {
+      "id": "map_service",
+      "command": "ros2 service call /map_server/get_map nav2_msgs/srv/GetMap",
+      "expected_pattern": "width.*height.*resolution",
+      "description": "Verify map is loaded and accessible"
+    },
+    {
+      "id": "planner_test",
+      "command": "ros2 action send_goal navigate_to_pose nav2_msgs/action/NavigateToPose 'pose: {header: {frame_id: \"map\"}, pose: {position: {x: 1.0, y: 1.0, z: 0.0}, orientation: {w: 1.0}}}'",
+      "expected_pattern": "Accepted|succeeded|active",
+      "description": "Verify planner responds to navigation goal"
+    }
+  ]
+}

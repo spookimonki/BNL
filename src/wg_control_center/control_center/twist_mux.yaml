@@ -1,0 +1,18 @@
+twist_mux:
+  ros__parameters:
+    topics:
+    navigation:
+      - name: "cmd_vel_mux/input/teleop"
+        topic: cmd_vel
+        timeout: 0.5
+        priority: 50
+      - name: "cmd_vel_mux/input/safety_controller"
+        topic: "/cmd_vel_safety_controller"
+        timeout: 0.5
+      - name: "cmd_vel_mux/input/joystick"
+        topic: "/cmd_vel_joystick"
+        timeout: 0.5
+      - name: "cmd_vel_mux/input/auto"
+        topic: "/cmd_vel_auto"
+        timeout: 0.5
+    default_topic: "cmd_vel_mux/input/teleop"

@@ -16,20 +16,23 @@ def generate_launch_description():
     ros_gz_sim_pkg_path = get_package_share_directory('ros_gz_sim')
     sim_pkg_path = FindPackageShare('simulation_package')
     wg_state_est_pkg_path = get_package_share_directory('wg_state_est')
-    robot_localization_pkg_path = get_package_share_directory('robot_localization')
+    wg_utilities_pkg_path = get_package_share_directory('wg_utilities')
     
     gz_launch_path = PathJoinSubstitution([ros_gz_sim_pkg_path, 'launch', 'gz_sim.launch.py'])
     nav2_launch_path = os.path.join(wg_state_est_pkg_path, 'launch', 'nav2_launch.py')
     full_localization_launch_path = os.path.join(wg_state_est_pkg_path, 'launch', 'full_localization.launch.py')
     
     # Create default nav2 params path (update this to match your setup)
-    nav2_params_file = os.path.join(wg_state_est_pkg_path, 'config', 'nav2_params.yaml')
+    nav2_params_file = os.path.join(wg_utilities_pkg_path, 'nav2', 'nav2_param.yaml')
     
     mode = LaunchConfiguration('mode')
 
-    mode_arg = DeclareLaunchArgument('mode', 
+    sim_condition = IfCondition(PythonExpression(["'", mode, "' == 'sim'"]))
+    real_condition = IfCondition(PythonExpression(["'", mode, "' == 'real'"]))
+
+    mode_arg = DeclareLaunchArgument('mode',
                           default_value='sim',
-                          description="Launch argument som bestemme om vi kjøre simulasjon eller ikke."
+                          description='Launch mode: "sim" for Gazebo simulation, "real" for physical robot'
                           )
 
 
@@ -47,7 +50,7 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=['/scan_gpu@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
                     '/camera_image@sensor_msgs/msg/Image[gz.msgs.Image'],
-        condition=IfCondition(PythonExpression(["'", mode, "' == 'sim'"])),
+        condition=sim_condition,
         output='screen'
     )
     
@@ -56,6 +59,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(full_localization_launch_path),
         launch_arguments={
             'autostart': 'true',
+            'mode': mode,
         }.items(),
     )
     
@@ -89,10 +93,10 @@ def generate_launch_description():
     gz_start_node = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(gz_launch_path),
         launch_arguments={
-            'gz_args': PathJoinSubstitution([sim_pkg_path, 'gazebo_includes', 'worlds/example.sdf']), 
+            'gz_args': PathJoinSubstitution([sim_pkg_path, 'gazebo_includes', 'worlds/example.sdf']),
             'on_exit_shutdown': 'True'
         }.items(),
-        condition=IfCondition(PythonExpression(["'", mode, "' == 'sim'"])),
+        condition=sim_condition,
     )
 
     picamera_node = Node(
@@ -100,7 +104,7 @@ def generate_launch_description():
         executable='camera_wrapper.sh',
         name='picamera_node',
         output='screen',
-        condition=IfCondition(PythonExpression(["'", mode, "' == 'real'"])),
+        condition=real_condition,
     )
 
     wait_sec_node = TimerAction(period=2.0,

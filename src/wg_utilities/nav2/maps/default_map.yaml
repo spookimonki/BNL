@@ -1,0 +1,51 @@
+# ROS2 Nav2 Map Configuration
+# =================================
+# PLACEHOLDER MAP - Replace with SLAM-generated or real map
+#
+# This is a placeholder map configuration for Nav2 AMCL localization.
+#
+# To use a real map:
+# 1. Generate map using SLAM (e.g., from slam_toolbox)
+#    - Run: ros2 launch slam_toolbox online_async.launch.py
+#    - Once localized, save map: ros2 service call /slam_toolbox/save_map slam_toolbox/srv/SaveMap "{name: {data: 'my_map'}}"
+#    - This creates: my_map.pgm and my_map.yaml
+#
+# 2. Copy generated map files to: src/wg_utilities/nav2/maps/
+#
+# 3. Update nav2_param.yaml map_server section:
+#    yaml_filename: /path/to/installed/maps/my_map.yaml
+#    (e.g., /opt/ros/jazzy/share/nav2_bringup/maps/turtlebot3_world.yaml for example)
+#
+# Map file format:
+# - .pgm file: PGM (Portable Gray Map) image where:
+#   * 0 (black) = occupied/obstacle
+#   * 255 (white) = free/traversable
+#   * 127 (gray) = unknown/unobserved
+#
+# - .yaml file: Metadata about the PGM image
+
+# Path to the PGM image file (relative or absolute)
+# If using installed package path, use ros2 pkg prefix:
+# image: $(ros2 pkg prefix wg_utilities)/share/wg_utilities/maps/default_map.pgm
+image: default_map.pgm
+
+# Resolution: meters per pixel (pixels are square)
+# Standard value: 0.05 (5cm per pixel) - good balance for indoor robotics
+resolution: 0.05
+
+# Origin: [x, y, theta] in meters and radians
+# Represents world coordinates of the bottom-left corner of the map
+# For centered origin: use negative values to shift map center
+# Example for 10x10m map centered at origin: [-5.0, -5.0, 0.0]
+origin: [-5.0, -5.0, 0.0]
+
+# Occupancy thresholds (0.0 to 1.0)
+# occupied_thresh: pixels with occupancy >= this value are OCCUPIED (obstacles)
+occupied_thresh: 0.65
+
+# free_thresh: pixels with occupancy <= this value are FREE (traversable)
+free_thresh: 0.196
+
+# negate: if true, invert the image colors (0->255, 255->0)
+# Use if your PGM file uses opposite convention (white=occupied)
+negate: false
