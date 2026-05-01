@@ -1,0 +1,45 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from wg_interface/msg/ControlEvent.msg
+// generated code does not contain a copyright notice
+
+#include "std_msgs/msg/Header.idl"
+
+module wg_interface {
+  module msg {
+    struct ControlEvent {
+      std_msgs::msg::Header header;
+
+      @verbatim (language="comment", text=
+        "Hvilken type signal du sender")
+      uint8 control_type;
+
+      @verbatim (language="comment", text=
+        "prosent hvor mye av maks frekvens (hel prosent 50% = 50)")
+      double right_cycle;
+
+      @verbatim (language="comment", text=
+        "tall som representerer retningen på motoren 0, 1")
+      uint8 right_direction;
+
+      @verbatim (language="comment", text=
+        "prosent hvor mye av maks frekvens (hel prosent 50% = 50)")
+      double left_cycle;
+
+      @verbatim (language="comment", text=
+        "tall som representerer retningen på motoren 0, 1")
+      uint8 left_direction;
+
+      @verbatim (language="comment", text=
+        "prosent hvor mye av maks frekvens (hel prosent 50% = 50)")
+      double combined_cycle;
+
+      @verbatim (language="comment", text=
+        "tall som representerer retning 0, 1")
+      uint8 combined_direction;
+
+      @verbatim (language="comment", text=
+        "0 = mot klokka, 1 = med klokka")
+      uint8 combined_rotation;
+    };
+  };
+};

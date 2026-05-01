@@ -1,0 +1,6 @@
+source;share/wg_sensor_pullup/hook/pythonpath.ps1
+source;share/wg_sensor_pullup/hook/pythonpath.dsv
+source;share/wg_sensor_pullup/hook/pythonpath.sh
+source;share/wg_sensor_pullup/hook/ament_prefix_path.ps1
+source;share/wg_sensor_pullup/hook/ament_prefix_path.dsv
+source;share/wg_sensor_pullup/hook/ament_prefix_path.sh

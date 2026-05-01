@@ -1,0 +1,14 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from wg_interface/msg/Zero.msg
+// generated code does not contain a copyright notice
+
+
+module wg_interface {
+  module msg {
+    @verbatim (language="comment", text=
+      "bare en placeholder fil intil videre")
+    struct Zero {
+      uint8 structure_needs_at_least_one_member;
+    };
+  };
+};

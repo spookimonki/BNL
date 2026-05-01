@@ -15,12 +15,12 @@ import os
 def generate_launch_description():
     ros_gz_sim_pkg_path = get_package_share_directory('ros_gz_sim')
     sim_pkg_path = FindPackageShare('simulation_package')
-    wg_state_est_pkg_path = get_package_share_directory('wg_state_est')
+    #wg_state_est_pkg_path = get_package_share_directory('robot_localization')
     wg_utilities_pkg_path = get_package_share_directory('wg_utilities')
     
     gz_launch_path = PathJoinSubstitution([ros_gz_sim_pkg_path, 'launch', 'gz_sim.launch.py'])
-    nav2_launch_path = os.path.join(wg_state_est_pkg_path, 'launch', 'nav2_launch.py')
-    full_localization_launch_path = os.path.join(wg_state_est_pkg_path, 'launch', 'full_localization.launch.py')
+    nav2_launch_path = os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')
+    #full_localization_launch_path = os.path.join(wg_state_est_pkg_path, 'launch', 'full_localization.launch.py')
     
     # Create default nav2 params path (update this to match your setup)
     nav2_params_file = os.path.join(wg_utilities_pkg_path, 'nav2', 'nav2_param.yaml')
@@ -54,6 +54,7 @@ def generate_launch_description():
         output='screen'
     )
     
+    '''
     # Include full localization (wheel odom, IMU, lidar, UKF filter)
     full_localization = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(full_localization_launch_path),
@@ -62,7 +63,7 @@ def generate_launch_description():
             'mode': mode,
         }.items(),
     )
-    
+    '''
     # Include Nav2 with slam_toolbox (slam:='True' tells Nav2 to start slam_toolbox internally)
     nav2_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(nav2_launch_path),
@@ -96,7 +97,6 @@ def generate_launch_description():
             'gz_args': PathJoinSubstitution([sim_pkg_path, 'gazebo_includes', 'worlds/example.sdf']),
             'on_exit_shutdown': 'True'
         }.items(),
-        condition=sim_condition,
     )
 
     picamera_node = Node(
@@ -110,7 +110,7 @@ def generate_launch_description():
     wait_sec_node = TimerAction(period=2.0,
                                 actions=[gz_start_node,
                                          bridge_node,
-                                         full_localization,
+                                         #full_localization,
                                          nav2_launch,
                                          wrapper_node,
                                          picamera_node])
