@@ -19,8 +19,8 @@ class ros_picamera(Node):
     def __init__(self):
         super().__init__('picamera_node')
 
-        self.image_publisher = self.create_publisher(Image, 'cam_image', default_qos_profile)
-        self.timer = self.create_timer(1/10, self.image_callback, Image)
+        self.image_publisher = self.create_publisher(Image, 'camera_image', default_qos_profile)
+        self.timer = self.create_timer(1/10, self.image_callback)
 
         self.width = 1280
         self.height = 720
