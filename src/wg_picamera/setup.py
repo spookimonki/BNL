@@ -25,7 +25,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            #'wg_picamera_exec = wg_picamera.camera_interface:main'
+            'wg_picamera_exec = wg_picamera.camera_interface:main'
         ],
     },
 )

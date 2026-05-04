@@ -59,7 +59,6 @@ class ros_yolo(Node):
         self.latest_image = msg
         #self.image_id = sha256(dt.datetime.now().isoformat(timespec='milliseconds').encode(encoding='utf-8')).hexdigest()   #   fancy id med sha256 og tid
         self.image_id = dt.datetime.now().isoformat(timespec='milliseconds')
-
     
     #--PLANER FOR BUFFER SYSTEMET
     # ALT som den gjør her (buffering, hashing og tidstaking) kan bli gjort av en annen node, slik at data også kan ta inn
