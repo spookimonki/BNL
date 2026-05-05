@@ -101,7 +101,7 @@ def generate_launch_description():
 
     picamera_node = Node(
         package='wg_picamera',
-        executable='camera_wrapper.sh',
+        executable='wg_picamera_exec',
         name='picamera_node',
         output='screen',
         condition=real_condition,
