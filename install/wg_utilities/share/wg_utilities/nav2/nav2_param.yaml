@@ -20,7 +20,7 @@ planner_server:
     expected_planner_frequency: 20.0
     planner_plugins: ["GridBased"]
     GridBased:
-      plugin: nav2_navfn_planner/NavfnPlanner
+      plugin: nav2_navfn_planner::NavfnPlanner
       tolerance: 0.5
       use_astar: false
       allow_unknown: false
@@ -54,7 +54,7 @@ controller_server:
     # Regulated Pure Pursuit controller for differential drive
     # Tuning guide: https://docs.nav2.org/tuning_guide/tuning_params.html
     FollowPath:
-      plugin: nav2_regulated_pure_pursuit_controller/RegulatedPurePursuitController
+      plugin: nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController
       # Max forward speed (m/s). Tune to robot capabilities: 0.5 m/s is conservative.
       # Increase for faster robots; decrease for tight spaces or safety.
       desired_linear_vel: 0.5
