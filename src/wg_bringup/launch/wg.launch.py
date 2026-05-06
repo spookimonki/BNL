@@ -15,18 +15,22 @@ import os
 def generate_launch_description():
     ros_gz_sim_pkg_path = get_package_share_directory('ros_gz_sim')
     sim_pkg_path = FindPackageShare('simulation_package')
-    #wg_state_est_pkg_path = get_package_share_directory('robot_localization')
+    wg_state_est_pkg_path = get_package_share_directory('robot_localization')
     wg_utilities_pkg_path = get_package_share_directory('wg_utilities')
-    static_tf_path = '/home/bnluser/Desktop/Elias_BNL/src/wg_utilities/nav2/static_tf.urdf'
-    
+    wg_bringup_pkg_path = get_package_share_directory('wg_bringup')
+
+    # Use package-relative paths (works on any Pi)
+    static_tf_path = os.path.join(wg_utilities_pkg_path, 'nav2', 'static_tf.urdf')
+
     gz_launch_path = PathJoinSubstitution([ros_gz_sim_pkg_path, 'launch', 'gz_sim.launch.py'])
     nav2_launch_path = os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')
     nav2_navigation_launch_path = os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'navigation_launch.py')
     slam_launch_path = os.path.join(get_package_share_directory('slam_toolbox'), 'launch', 'online_async_launch.py')
-    #full_localization_launch_path = os.path.join(wg_state_est_pkg_path, 'launch', 'full_localization.launch.py')
-    
-    # Create default nav2 params path (update this to match your setup)
-    nav2_params_file = '/home/bnluser/Desktop/Elias_BNL/src/wg_utilities/nav2/nav2_param.yaml'
+    full_localization_launch_path = os.path.join(wg_state_est_pkg_path, 'launch', 'full_localization.launch.py')
+
+    # Nav2 params - use package path
+    nav2_params_file = os.path.join(wg_utilities_pkg_path, 'nav2', 'nav2_param.yaml')
+    slam_params_file = os.path.join(wg_utilities_pkg_path, 'nav2', 'slam_params.yaml')
     
     mode = LaunchConfiguration('mode')
     use_sim_time = PythonExpression(["'", mode, "' == 'sim' and 'true' or 'false'"])
@@ -58,16 +62,16 @@ def generate_launch_description():
         output='screen'
     )
     
-    '''
-    # Include full localization (wheel odom, IMU, lidar, UKF filter)
+    # Include full localization (wheel odom, IMU, UKF sensor fusion)
+    # UKF fuses /odom/raw (wheel encoders) + /imu/data (IMU) → /odom/calibrated
     full_localization = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(full_localization_launch_path),
         launch_arguments={
             'autostart': 'true',
             'mode': mode,
         }.items(),
+        condition=real_condition,  # Only in real mode (sim has Gazebo odometry)
     )
-    '''
     # Include Nav2 with slam_toolbox (slam:='True' tells Nav2 to start slam_toolbox internally)
     nav2_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(nav2_launch_path),
@@ -96,7 +100,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(slam_launch_path),
         launch_arguments={
             'use_sim_time': 'false',
-            'slam_params_file': '/home/bnluser/Desktop/Elias_BNL/src/wg_utilities/nav2/slam_params.yaml',
+            'slam_params_file': slam_params_file,
             'autostart': 'true',
         }.items(),
         condition=real_condition,
@@ -150,6 +154,57 @@ def generate_launch_description():
         }],
     )
 
+    # IMU static transform with upside-down mount compensation
+    # IMU is mounted upside-down: 180° rotation around X axis
+    static_base_to_imu = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='base_to_imu_static_tf',
+        output='screen',
+        arguments=[
+            '0.0', '0.0', '0.003',  # x, y, z (from static_tf.urdf)
+            '3.14159265359', '0.0', '0.0',  # yaw=180°, pitch=0, roll=0 (upside-down compensation)
+            'base_link',
+            'imu_link',
+        ],
+    )
+
+    # Servo oscillator for LiDAR mount (optional - enable with servo_enabled:=true)
+    servo_oscillator = Node(
+        package='wg_bringup',
+        executable='servo_oscillator',
+        name='servo_oscillator_node',
+        output='screen',
+        condition=real_condition,
+        parameters=[{
+            'servo_pin': 20,
+            'pwm_frequency': 50,
+            'theta_center': 90.0,
+            'amplitude': 15.0,
+            'period': 2.0,
+            'publish_rate': 50.0,
+            'enable_gpio': True,
+        }],
+    )
+
+    # Scan angle projection (compensates for servo motion)
+    scan_projection = Node(
+        package='wg_bringup',
+        executable='scan_projection',
+        name='scan_projection_node',
+        output='screen',
+        condition=real_condition,
+        parameters=[{
+            'enable_compensation': True,
+            'max_latency_ms': 50.0,
+            'output_3d': False,  # Set True for 3D mapping
+        }],
+    )
+
+    # LiDAR port with fallback: try ttyAMA0, then serial0, then USB
+    lidar_port = DeclareLaunchArgument('lidar_port', default_value='/dev/ttyAMA0',
+                                       description='LiDAR serial port. Fallback: /dev/serial0, /dev/ttyUSB0')
+
     lidar_node = Node(
         package='ldlidar_stl_ros2',
         executable='ldlidar_stl_ros2_node',
@@ -160,7 +215,7 @@ def generate_launch_description():
             'product_name': 'LDLiDAR_LD06',
             'topic_name': 'scan',
             'frame_id': 'lidar_link',
-            'port_name': '/dev/ttyAMA0',
+            'port_name': LaunchConfiguration('lidar_port'),
             'port_baudrate': 230400,
             'laser_scan_dir': True,
             'enable_angle_crop_func': False,
@@ -219,7 +274,11 @@ def generate_launch_description():
                                          nav2_launch,
                                          nav2_navigation_launch,
                                          slam_launch,
+                                         full_localization,
                                          robot_state_publisher,
+                                         static_base_to_imu,
+                                         servo_oscillator,
+                                         scan_projection,
                                          lidar_node,
                                          imu_node,
                                          wheel_odom_node,
@@ -233,10 +292,11 @@ def generate_launch_description():
             PathJoinSubstitution([sim_pkg_path, 'gazebo_includes', 'models'])
         ),
         SetEnvironmentVariable(
-            'BNL_VENV_PATH',os.path.expandvars('/home/${USER}/.BNL_venv/.venv') 
+            'BNL_VENV_PATH',os.path.expandvars('/home/${USER}/.BNL_venv/.venv')
         ),
 
         mode_arg,
+        lidar_port,
         startup_node,
 
         RegisterEventHandler(

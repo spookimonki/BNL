@@ -1,0 +1,72 @@
+# Hardware Configuration for BNL Robot
+# All device paths, GPIO pins, and hardware parameters
+# Use this file to adapt to different Pi models or hardware revisions
+
+# LiDAR (LD06)
+lidar:
+  port: /dev/ttyAMA0          # Primary: UART0 (GPIO 14/15)
+  port_fallback: /dev/serial0 # Secondary: serial alias
+  port_usb: /dev/ttyUSB0      # USB serial adapter
+  baudrate: 230400
+  frame_id: lidar_link
+  scan_topic: /scan
+
+# Wheel Encoders
+encoders:
+  left_pin_a: 5               # BCM GPIO (physical pin 29)
+  left_pin_b: 6               # BCM GPIO (physical pin 31)
+  right_pin_a: 4              # BCM GPIO (physical pin 7)
+  right_pin_b: 17             # BCM GPIO (physical pin 11)
+  wheel_radius: 0.0275        # meters (5.5 cm diameter)
+  wheel_base: 0.2             # meters (distance between wheels)
+  encoder_resolution: 2048    # ticks per revolution
+  odom_topic: /odom
+  publish_rate: 10.0          # Hz
+
+# Motor Control (H-Bridge)
+motors:
+  left_pwm_pin: 13            # BCM GPIO (physical pin 33) - Hardware PWM
+  right_pwm_pin: 12           # BCM GPIO (physical pin 32) - Hardware PWM
+  left_fwd_pin: 16            # BCM GPIO (physical pin 36)
+  left_rev_pin: 26            # BCM GPIO (physical pin 37)
+  right_fwd_pin: 27           # BCM GPIO (physical pin 13)
+  right_rev_pin: 22           # BCM GPIO (physical pin 15)
+  pwm_frequency: 100          # Hz
+  max_pwm: 255
+  kp: 50.0                    # PD control proportional gain
+  kd: 5.0                     # PD control derivative gain
+  cmd_vel_topic: /cmd_vel
+
+# IMU (BNO085)
+imu:
+  i2c_address: 0x4A           # I2C address (confirmed by i2cdetect)
+  i2c_bus: 1                  # /dev/i2c-1
+  frame_id: imu_link
+  topic: /imu/data
+  publish_rate: 100.0         # Hz
+  mount_orientation:          # IMU is mounted upside-down
+    upside_down: true
+    rotation_x: 3.14159265359 # 180 degrees around X axis
+
+# Servo (LiDAR mount)
+servo:
+  pin: 20                     # BCM GPIO (physical pin 38)
+  pwm_frequency: 50           # Hz (standard servo)
+  theta_center: 90.0          # degrees (straight ahead)
+  amplitude: 15.0             # degrees (sweep +/- from center)
+  period: 2.0                 # seconds per full cycle
+  angle_topic: /servo_angle
+
+# Camera (PiCamera)
+camera:
+  enabled: false              # Set true if camera is connected
+  topic: /camera/image_raw
+  width: 640
+  height: 480
+  fps: 30
+
+# Power Management
+power:
+  battery_monitor_pin: null   # Optional: GPIO for battery voltage
+  low_voltage_threshold: 10.5 # Volts
+  shutdown_voltage: 10.0      # Volts

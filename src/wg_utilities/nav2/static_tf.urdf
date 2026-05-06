@@ -61,4 +61,24 @@
     <origin xyz="0.0 0.0 0.003" rpy="0 0 0"/>
   </joint>
 
+  <!-- Servo link (for LiDAR oscillation mechanism) -->
+  <link name="servo_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.04 0.04"/>
+      </geometry>
+      <material name="orange">
+        <color rgba="1.0 0.5 0.2 1.0"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- Servo mounted at front of robot, slightly above base -->
+  <joint name="base_to_servo" type="fixed">
+    <parent link="base_link"/>
+    <child link="servo_link"/>
+    <origin xyz="0.12 0.0 0.08" rpy="0 0 0"/>
+  </joint>
+
 </robot>

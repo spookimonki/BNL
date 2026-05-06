@@ -159,6 +159,8 @@ COPY ./ros_entrypoint.sh /
 
 RUN apt-get update && apt-get upgrade -y
 
+ENV ROS_STATIC_PEERS='bnluser.taileb9cbc.ts.net;sanctimoniouszen14.taileb9cbc.ts.net;' # legg til flere peers her!!! 
+
 ENTRYPOINT ["/ros_entrypoint.sh"]
 CMD ["bash"]
 
