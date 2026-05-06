@@ -7,10 +7,10 @@ The BNL robot is now configured to start in a completely unknown environment and
 ## Architecture
 
 ```
-Sensors                      Fusion                          Nav2 Stack
+Sensors                      Odometry                        Nav2 Stack
 ├── LiDAR (/scan)      ──┐
-├── Wheel Odometry     ──┼──→ robot_localization (UKF)  ──→ Planner Server
-├── IMU                ──┘    /odom/calibrated             Local Path Tracking
+├── Wheel Encoders     ──┼──→ wheelodom.py ──→ /odom  ──→ Planner Server
+├── IMU (/imu/data)    ──┘    (kinematic)                  Local Path Tracking
 └── Camera                                                   Behavior Tree Navigator
 
 SLAM
@@ -71,12 +71,13 @@ TF Chain (Complete)
 - `map_frame: map`, `odom_frame: odom`, `base_frame: base_link`
 - `use_sim_time: false` — Handled via launch parameter override
 
-### 4. `src/wg_state_est/launch/full_localization.launch.py`
+### 4. Odometry Pipeline
 
-**No changes needed** — Already correctly configured:
-- UKF has `publish_tf: False` — SLAM provides `map → odom`
-- UKF outputs `/odom/calibrated` — Fused odometry
-- Hardware nodes publish `odom → base_link` in real mode
+**Kinematic odometry only** — No sensor fusion:
+- `wheelodom.py` reads encoder GPIO, publishes `/odom` + TF `odom → base_link`
+- `imuodom.py` publishes `/imu/data` for monitoring (not fused)
+- Nav2 subscribes directly to `/odom`
+- slam_toolbox uses `/scan` for localization, `/odom` as motion prior
 
 ## Launch Sequence
 
@@ -91,11 +92,11 @@ ros2 launch wg_bringup wg.launch.py mode:=sim
    - Loads robot model and world
    - Provides simulated `/scan` via ros_gz_bridge
 
-2. **State Estimation** (full_localization.launch.py)
-   - UKF node starts: fuses odometry + IMU
-   - Outputs `/odom/calibrated`
-   - Does NOT publish TF (correct for SLAM mode)
-   - Hardware nodes: wheel_odom, imu_odom (real mode only)
+2. **Odometry** (wheel_odom_node)
+   - wheelodom.py reads encoders via GPIO
+   - Publishes `/odom` (nav_msgs/Odometry)
+   - Publishes TF `odom → base_link`
+   - imu_odom_node publishes `/imu/data` for diagnostics
 
 3. **Nav2 + SLAM** (nav2_launch.py → bringup_launch.py)
    - slam_launch.py starts slam_toolbox
@@ -116,7 +117,7 @@ ros2 launch wg_bringup wg.launch.py mode:=sim
 map (from slam_toolbox)
   ↓ slam_toolbox publishes map→odom transform
 odom (continuously updated by SLAM)
-  ↓ robot_localization or hardware publishes odom→base_link
+  ↓ wheelodom.py publishes odom→base_link
 base_link
   ↓ static transforms
 imu_link, lidar_link, camera_link
@@ -216,5 +217,5 @@ Run commands in `ONLINE_SLAM_VALIDATION.md` to verify:
 
 - **SLAM Toolbox:** http://docs.ros.org/en/jazzy/p/slam_toolbox/
 - **Nav2 Docs:** https://docs.nav2.org/
-- **Robot Localization:** http://docs.ros.org/en/jazzy/p/robot_localization/
+- **Differential Drive Kinematics:** Standard encoder-based odometry (no fusion)
 - **REP-105 (Frames):** http://www.ros.org/reps/rep-0105.html

@@ -169,7 +169,7 @@ cd /home/bnluser/Desktop/BNL  # Adjust path as needed
 rm -rf build install log
 
 # Build
-colcon build --symlink-install --allow-overriding robot_localization
+colcon build
 
 # Source workspace
 source install/setup.bash

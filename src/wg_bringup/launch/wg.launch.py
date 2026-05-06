@@ -15,7 +15,6 @@ import os
 def generate_launch_description():
     ros_gz_sim_pkg_path = get_package_share_directory('ros_gz_sim')
     sim_pkg_path = FindPackageShare('simulation_package')
-    wg_state_est_pkg_path = get_package_share_directory('robot_localization')
     wg_utilities_pkg_path = get_package_share_directory('wg_utilities')
     wg_bringup_pkg_path = get_package_share_directory('wg_bringup')
 
@@ -26,7 +25,6 @@ def generate_launch_description():
     nav2_launch_path = os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'bringup_launch.py')
     nav2_navigation_launch_path = os.path.join(get_package_share_directory('nav2_bringup'), 'launch', 'navigation_launch.py')
     slam_launch_path = os.path.join(get_package_share_directory('slam_toolbox'), 'launch', 'online_async_launch.py')
-    full_localization_launch_path = os.path.join(wg_state_est_pkg_path, 'launch', 'full_localization.launch.py')
 
     # Nav2 params - use package path
     nav2_params_file = os.path.join(wg_utilities_pkg_path, 'nav2', 'nav2_param.yaml')
@@ -62,16 +60,8 @@ def generate_launch_description():
         output='screen'
     )
     
-    # Include full localization (wheel odom, IMU, UKF sensor fusion)
-    # UKF fuses /odom/raw (wheel encoders) + /imu/data (IMU) → /odom/calibrated
-    full_localization = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(full_localization_launch_path),
-        launch_arguments={
-            'autostart': 'true',
-            'mode': mode,
-        }.items(),
-        condition=real_condition,  # Only in real mode (sim has Gazebo odometry)
-    )
+    # Kinematic odometry: wheel encoders publish /odom + odom→base_link TF
+    # No sensor fusion — pure differential-drive kinematics on Raspberry Pi
     # Include Nav2 with slam_toolbox (slam:='True' tells Nav2 to start slam_toolbox internally)
     nav2_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(nav2_launch_path),
@@ -274,7 +264,6 @@ def generate_launch_description():
                                          nav2_launch,
                                          nav2_navigation_launch,
                                          slam_launch,
-                                         full_localization,
                                          robot_state_publisher,
                                          static_base_to_imu,
                                          servo_oscillator,

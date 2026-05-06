@@ -13,9 +13,9 @@ Autonomous exploration robot stack with servo-mounted LiDAR, multi-sensor fusion
 ```
 SENSORS → STATE ESTIMATION → SLAM → NAVIGATION → ACTUATION
    │            │              │         │           │
-   ├─ LiDAR     ├─ UKF         ├─ map    ├─ Nav2     ├─ Motor PWM
+   ├─ LiDAR     ├─ Kinematic   ├─ map    ├─ Nav2     ├─ Motor PWM
    ├─ Encoders  ├─ TF tree     ├─ odom   ├─ Planner  └─ Servo (LiDAR mount)
-   └─ IMU       └─ /odom/calibrated       └─ Controller
+   └─ IMU       └─ /odom                └─ Controller
 ```
 
 ### Key Components
@@ -25,7 +25,7 @@ SENSORS → STATE ESTIMATION → SLAM → NAVIGATION → ACTUATION
 | **Sensors** | LD06 LiDAR (UART) | ✅ Working |
 | | Wheel encoders (GPIO) | ✅ Working |
 | | BNO085 IMU (I2C) | ✅ Working |
-| **State Estimation** | UKF sensor fusion | ✅ Enabled |
+| **State Estimation** | Kinematic odometry (encoders) | ✅ Enabled |
 | **Mapping** | slam_toolbox | ✅ Configured |
 | **Navigation** | Nav2 stack | ✅ Configured |
 | **Actuation** | H-bridge motor control | ✅ Working |
@@ -116,8 +116,7 @@ The `scan_projection` node compensates for servo motion:
 |-------|------|-----------|------|
 | `/scan` | LaserScan | ldlidar_stl_ros2 | 30 Hz |
 | `/scan_corrected` | LaserScan | scan_projection | 30 Hz |
-| `/odom/raw` | Odometry | wheelodom | 10 Hz |
-| `/odom/calibrated` | Odometry | UKF | 30 Hz |
+| `/odom` | Odometry | wheelodom | 10 Hz |
 | `/imu/data` | Imu | imuodom | 100 Hz |
 | `/servo_angle` | Float64 | servo_oscillator | 50 Hz |
 | `/map` | OccupancyGrid | slam_toolbox | 1 Hz |
@@ -137,7 +136,7 @@ The `scan_projection` node compensates for servo motion:
 ```
 map (SLAM)
   ↓
-odom (UKF)
+odom (wheelodom)
   ↓
 base_link
   ├── lidar_link (+5cm Z)
@@ -154,7 +153,7 @@ base_link
 | `wg_bringup` | Main launch file, servo oscillator, scan projection |
 | `wg_sensor_pullup` | Sensor nodes (wheelodom, imuodom, lidar_relay, vel_to_pmw) |
 | `wg_utilities` | Nav2/SLAM configurations |
-| `robot_localization` | UKF sensor fusion |
+| `wg_sensor_pullup` | Kinematic odometry + sensors |
 | `wg_control_center` | Control center utilities |
 | `wg_picamera` | Pi camera interface (sim only) |
 | `wg_yolo_package` | YOLO object detection (placeholder) |
@@ -174,9 +173,9 @@ base_link
    - May cause scan artifacts during fast rotation
    - **Mitigation**: Scans rejected when |θ - 90°| > 60°
 
-3. **UKF covariances untuned**
-   - Process noise values are initial guesses
-   - **Fix**: Run empirical tuning (see `scripts/tune_ukf.py` when available)
+3. **Encoder odometry drift**
+   - No sensor fusion means drift accumulates over time
+   - **Mitigation**: Rely on SLAM scan matching for global consistency
 
 ### Medium
 
@@ -199,8 +198,8 @@ Before deployment, verify:
 # 1. TF tree complete
 ros2 run tf2_tools view_frames.py
 
-# 2. UKF output active
-ros2 topic hz /odom/calibrated  # Should show ~30 Hz
+# 2. Odometry active
+ros2 topic hz /odom  # Should show ~10 Hz
 
 # 3. Scan compensation working
 ros2 topic echo /scan_corrected  # Check: ranges positive
@@ -276,9 +275,9 @@ i2cdetect -y 1  # Should show 0x4A
 
 ### Navigation drift
 
-1. Check UKF is fusing IMU: `ros2 topic echo /odom/calibrated`
-2. Verify IMU transform: rotate robot, check yaw direction
-3. Tune UKF process noise if needed
+1. Check odometry: `ros2 topic echo /odom`
+2. Verify TF tree: `ros2 run tf2_tools view_frames.py`
+3. Tune encoder covariances in wheelodom.py if needed
 
 ---
 

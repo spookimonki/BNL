@@ -26,7 +26,7 @@ This document provides step-by-step validation of the online SLAM + Nav2 navigat
 cd /bnl_git
 
 # Clean and build
-colcon build --symlink-install --allow-overriding robot_localization
+colcon build
 
 # Source the install
 source install/setup.bash

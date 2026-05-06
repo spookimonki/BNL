@@ -69,7 +69,7 @@ i2cdetect -y 1
 | Right | 7     | 11    | 4      | 17     |
 | Left  | 29    | 31    | 5      | 6      |
 
-**ROS Topic**: `/odom/raw` (10 Hz, Odometry message)
+**ROS Topic**: `/odom` (10 Hz, Odometry message)
 
 ### I2C Bus ✓
 | Function | GPIO | Pin  |
@@ -107,7 +107,7 @@ i2cdetect -y 1
 
 | Topic | Source | Type | Freq | Status |
 |-------|--------|------|------|--------|
-| `/odom/raw` | wheel_odom_node | Odometry | 10 Hz | Ready* |
+| `/odom` | wheel_odom_node | Odometry | 10 Hz | Ready* |
 | `/imu/data` | imu_odom_node | Imu | 100 Hz | Ready* |
 | `/scan` | lidar_node | LaserScan | 30 Hz | **BLOCKED** (UART not configured) |
 | `/cmd_vel` | (controller input) | Twist | — | N/A |
@@ -166,7 +166,7 @@ ros2 run wg_sensor_pullup lidar_node
 
 # Monitor topics
 ros2 topic echo /imu/data
-ros2 topic echo /odom/raw
+ros2 topic echo /odom
 ros2 topic echo /scan
 ```
 

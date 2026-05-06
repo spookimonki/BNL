@@ -1,5 +1,7 @@
 # Nav2 Audit Report
 
+> **ARCHIVED / OBSOLETE**: This audit was written before the 2026-05-06 refactor that removed `robot_localization` (UKF/EKF) in favor of pure kinematic odometry. Many findings here reference the old broken architecture. See `agent-output/refactor_plan.md` for current design.
+
 **Generated**: 2026-04-30  
 **Workspace**: /home/monki/Desktop/BNL  
 **ROS Version**: Jazzy  
