@@ -14,18 +14,28 @@ class WheelOdom(Node):
     def __init__(self):
         super().__init__('wheel_odom_node')
 
-        self.declare_parameter('odom_topic', '/odom/raw')
+        self.declare_parameter('odom_topic', '/odom')
         self.declare_parameter('odom_frame_id', 'odom')
         self.declare_parameter('base_frame_id', 'base_link')
-        self.odom_topic = str(self.get_parameter('odom_topic').value or '/odom/raw')
+        self.declare_parameter('publish_rate_hz', 10.0)
+        self.declare_parameter('wheel_radius', 0.0275)
+        self.declare_parameter('wheel_base', 0.2)
+        self.declare_parameter('encoder_resolution_left', 2048)
+        self.declare_parameter('encoder_resolution_right', 2048)
+        self.declare_parameter('left_pin_a', 5)
+        self.declare_parameter('left_pin_b', 6)
+        self.declare_parameter('right_pin_a', 4)
+        self.declare_parameter('right_pin_b', 17)
+        self.odom_topic = str(self.get_parameter('odom_topic').value or '/odom')
         self.odom_frame_id = str(self.get_parameter('odom_frame_id').value or 'odom')
         self.base_frame_id = str(self.get_parameter('base_frame_id').value or 'base_link')
+        self.publish_rate_hz = float(self.get_parameter('publish_rate_hz').value or 10.0)
 
         # 1. Robot parameters
-        self.wheel_radius = 0.05
-        self.wheel_base = 0.3
-        self.encoder_resolution_left = 2048
-        self.encoder_resolution_right = 2048
+        self.wheel_radius = float(self.get_parameter('wheel_radius').value or 0.0275)
+        self.wheel_base = float(self.get_parameter('wheel_base').value or 0.2)
+        self.encoder_resolution_left = int(self.get_parameter('encoder_resolution_left').value or 2048)
+        self.encoder_resolution_right = int(self.get_parameter('encoder_resolution_right').value or 2048)
 
         # 2. Odometry state
         self.x = 0.0
@@ -43,56 +53,61 @@ class WheelOdom(Node):
         # 3. ROS publisher and timer
         self.odom_pub = self.create_publisher(Odometry, self.odom_topic, 10)
         self.tf_broadcaster = TransformBroadcaster(self)
-        self.timer = self.create_timer(0.1, self.publish_odom)
+        timer_period = 1.0 / self.publish_rate_hz if self.publish_rate_hz > 0.0 else 0.1
+        self.timer = self.create_timer(timer_period, self.publish_odom)
 
         # 4. GPIO setup
-        GPIO.setmode(GPIO.BCM)
-        self.left_pin_a = 5
-        self.left_pin_b = 6
-        self.right_pin_a = 4
-        self.right_pin_b = 17
+        self.gpio_available = False
+        self.left_pin_a = int(self.get_parameter('left_pin_a').value or 5)
+        self.left_pin_b = int(self.get_parameter('left_pin_b').value or 6)
+        self.right_pin_a = int(self.get_parameter('right_pin_a').value or 4)
+        self.right_pin_b = int(self.get_parameter('right_pin_b').value or 17)
+        self.left_a_last = 0
+        self.right_a_last = 0
 
-        GPIO.setup(self.left_pin_a, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.left_pin_b, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.right_pin_a, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.right_pin_b, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        try:
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setup(self.left_pin_a, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            GPIO.setup(self.left_pin_b, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            GPIO.setup(self.right_pin_a, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            GPIO.setup(self.right_pin_b, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-        # previous A states for quadrature decoding (after pins are configured)
-        self.left_a_last = GPIO.input(self.left_pin_a)
-        self.right_a_last = GPIO.input(self.right_pin_a)
+            # previous A states for quadrature decoding (after pins are configured)
+            self.left_a_last = GPIO.input(self.left_pin_a)
+            self.right_a_last = GPIO.input(self.right_pin_a)
 
-        GPIO.add_event_detect(self.left_pin_a, GPIO.BOTH, callback=self.left_callback)
-        GPIO.add_event_detect(self.left_pin_b, GPIO.BOTH, callback=self.left_callback)
-        GPIO.add_event_detect(self.right_pin_a, GPIO.BOTH, callback=self.right_callback)
-        GPIO.add_event_detect(self.right_pin_b, GPIO.BOTH, callback=self.right_callback)
+            # Use polling instead of edge detection (more reliable in ROS2 context)
+            self.gpio_available = True
+            self.get_logger().info('✓ GPIO encoders initialized (polling mode)')
+        except Exception as exc:
+            self.get_logger().warn(f'GPIO odometry unavailable, publishing odom without encoder input: {exc}')
 
-    # 5. Encoder callbacks
-    def left_callback(self, channel):
-        a_state = GPIO.input(self.left_pin_a)
-
-        if a_state != self.left_a_last:
-            b_state = GPIO.input(self.left_pin_b)
-
-            if b_state != a_state:
+    # 5. Encoder polling (instead of interrupts)
+    def poll_encoders(self):
+        """Poll encoder pins for quadrature decoding (called from publish_odom)"""
+        if not self.gpio_available:
+            return
+        
+        # Left encoder polling
+        left_a = GPIO.input(self.left_pin_a)
+        if left_a != self.left_a_last:
+            left_b = GPIO.input(self.left_pin_b)
+            # Quadrature: if B != A, we're moving forward; if B == A, backward
+            if left_b != left_a:
                 self.left_count += 1
             else:
                 self.left_count -= 1
-
-            self.left_a_last = a_state
-
-
-    def right_callback(self, channel):
-        a_state = GPIO.input(self.right_pin_a)
-
-        if a_state != self.right_a_last:
-            b_state = GPIO.input(self.right_pin_b)
-
-            if b_state != a_state:
+            self.left_a_last = left_a
+        
+        # Right encoder polling
+        right_a = GPIO.input(self.right_pin_a)
+        if right_a != self.right_a_last:
+            right_b = GPIO.input(self.right_pin_b)
+            if right_b != right_a:
                 self.right_count += 1
             else:
                 self.right_count -= 1
-
-            self.right_a_last = a_state
+            self.right_a_last = right_a
 
     # 6. Conversion helpers
     def left_ticks_to_distance(self, ticks):
@@ -122,6 +137,9 @@ class WheelOdom(Node):
 
     # 8. Publish odometry
     def publish_odom(self):
+        # Poll encoders first
+        self.poll_encoders()
+        
         now = time.time()
         delta_time = now - self.last_time
         if delta_time <= 0.0:

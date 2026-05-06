@@ -11,7 +11,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'adafruit-circuitpython-bno08x', 'pyserial'],
     zip_safe=True,
     maintainer='lillehavard',
     maintainer_email='haavaali@stud.ntnu.no',
@@ -24,6 +24,10 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'imuodom = IMU.imuodom:main',
+            'wheelodom = elias_relay.wheelodom:main',
+            'lidar_relay = elias_relay.lidar_relay:main',
+            'vel_to_pmw = elias_relay.vel_to_pmw:main',
         ],
     },
 )

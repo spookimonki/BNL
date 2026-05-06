@@ -19,13 +19,8 @@ from hashlib import sha256
 class ros_yolo(Node):
     def __init__(self):
         super().__init__('ros_yolo_node')
-        
-        #self.use_cuda = torch.cuda_is_available()
 
-        if 1==0:
-            self.device = 'cuda:0'
-        else:
-            self.device = 'cpu'
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
         self.model_directory    = os.path.join(get_package_prefix('wg_yolo_package'), 'share', 'wg_yolo_package', 'segmentation_model')
         self.model_path         = os.path.join(self.model_directory, 'yolo26n.pt')

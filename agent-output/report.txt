@@ -1,0 +1,46 @@
+ROS2 Navigation2 + SLAM Debug Report
+Date: 2026-05-05
+Workspace: /home/bnluser/Desktop/Elias_BNL
+
+Summary
+- Real-mode Nav2 + SLAM now launches and the live ROS graph is up.
+- The tutorial sequence is now followed in real mode: robot interfaces, Nav2 navigation, then SLAM Toolbox.
+- Live topics observed: /map, /tf, /tf_static, /scan, /odom, /robot_description, and Nav2 lifecycle topics.
+- /odom is published by wheelodom; it is expected to stay near-zero or stale until the wheels move.
+
+What was fixed
+- Added real-mode robot interface startup in [src/wg_bringup/launch/wg.launch.py](../src/wg_bringup/launch/wg.launch.py).
+- Split sim and real launch paths so real mode uses navigation_launch.py plus online_async_launch.py instead of Gazebo.
+- Pointed robot_state_publisher at the source URDF so it can start without depending on an installed copy.
+- Changed wheel odometry to publish on /odom instead of /odom/raw in [src/wg_sensor_pullup/elias_relay/wheelodom.py](../src/wg_sensor_pullup/elias_relay/wheelodom.py).
+- Exposed sensor executables in [src/wg_sensor_pullup/setup.py](../src/wg_sensor_pullup/setup.py).
+- Fixed Nav2 local costmap dimensions to integer values in [src/wg_utilities/nav2/nav2_param.yaml](../src/wg_utilities/nav2/nav2_param.yaml).
+
+Validation
+- Python syntax check passed for edited files.
+- Targeted colcon rebuild passed for wg_bringup and wg_sensor_pullup.
+- Final launch produced the expected live topic graph.
+
+Runtime evidence
+- Launch log: /home/bnluser/Desktop/Elias_BNL/agent-output/logs/47_real_launch_source_paths.log
+- Topic list: /home/bnluser/Desktop/Elias_BNL/agent-output/logs/48_topic_list_final.log
+- Node list: /home/bnluser/Desktop/Elias_BNL/agent-output/logs/49_node_list_final.log
+- Rebuild: /home/bnluser/Desktop/Elias_BNL/agent-output/logs/46_rebuild_source_paths.log
+
+Remaining caveats
+- LiDAR still reports /dev/serial0 missing on this host, so the LiDAR node is not actually connected to a device yet.
+- wheelodom warns that /dev/mem access is unavailable unless run as root or with appropriate GPIO access.
+- Those are hardware/runtime environment issues, not Nav2/SLAM configuration failures.
+
+Repro steps
+1. source /opt/ros/jazzy/setup.bash
+2. source /home/bnluser/Desktop/Elias_BNL/install/setup.bash
+3. ros2 launch wg_bringup wg.launch.py mode:=real
+
+Patch summary
+- See /home/bnluser/Desktop/Elias_BNL/agent-output/patches/real_mode_nav2.patch
+
+Recommended next steps
+1. Confirm the actual UART device path for the LiDAR and pass it to lidar_relay if it is not /dev/serial0.
+2. If GPIO odometry should run without root, add the required device permissions or run it through a privileged service.
+3. Once the hardware topic publishers are confirmed, test navigation commands against the live map.

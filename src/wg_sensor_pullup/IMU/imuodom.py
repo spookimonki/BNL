@@ -1,4 +1,5 @@
-
+#!/usr/bin/env python3
+"""BNO085 IMU node using I2C interface."""
 
 import rclpy
 from rclpy.node import Node
@@ -32,34 +33,99 @@ class ImuOdom(Node):
 		self.i2c_address = int(self.get_parameter('i2c_address').value or 0x4A)
 
 		self.publisher = self.create_publisher(Imu, self.topic_name, 10)
+		self.imu = None
 
-		self.i2c = busio.I2C(board.SCL, board.SDA, frequency=400000)
-		self.imu = BNO08X_I2C(self.i2c, address=self.i2c_address)
+		try:
+			self.i2c = busio.I2C(board.SCL, board.SDA, frequency=400000)
+			candidate_addresses = [self.i2c_address, 0x4A, 0x4B]
+			last_error = None
+			for address in candidate_addresses:
+				try:
+					self.imu = BNO08X_I2C(self.i2c, address=address)
+					self.i2c_address = address
+					break
+				except Exception as exc:
+					last_error = exc
 
-		report_interval_us = int(1_000_000 / self.publish_hz)
-		self.imu.enable_feature(BNO_REPORT_ROTATION_VECTOR, report_interval_us)
-		self.imu.enable_feature(BNO_REPORT_ACCELEROMETER, report_interval_us)
-		self.imu.enable_feature(BNO_REPORT_GYROSCOPE, report_interval_us)
+			if self.imu is None:
+				raise RuntimeError(f'No BNO08X detected on I2C addresses {candidate_addresses}: {last_error}')
+
+			report_interval_us = int(1_000_000 / self.publish_hz)
+			
+			# Enable features with proper error handling and spacing
+			# Only ROTATION_VECTOR is guaranteed on BNO085 firmware
+			self.imu.enable_feature(BNO_REPORT_ROTATION_VECTOR, report_interval_us)
+			self.get_logger().info('✓ ROTATION_VECTOR enabled')
+			
+			# Try to enable acceleration and gyro, but don't fail if they conflict
+			try:
+				import time
+				time.sleep(0.1)
+				self.imu.enable_feature(BNO_REPORT_ACCELEROMETER, report_interval_us)
+				self.get_logger().info('✓ ACCELEROMETER enabled')
+			except Exception as e:
+				self.get_logger().warn(f'Could not enable ACCELEROMETER: {e}')
+			
+			try:
+				import time
+				time.sleep(0.1)
+				self.imu.enable_feature(BNO_REPORT_GYROSCOPE, report_interval_us)
+				self.get_logger().info('✓ GYROSCOPE enabled')
+			except Exception as e:
+				self.get_logger().warn(f'Could not enable GYROSCOPE: {e}')
+
+			self.get_logger().info(f'Connected to BNO085 on I2C address 0x{self.i2c_address:02x}')
+		except Exception as e:
+			self.get_logger().error(f'Failed to initialize IMU: {e}')
+			self.get_logger().error('IMU node will stay alive without publishing until the sensor becomes available')
+			self.timer = None
+			self._warned_not_ready = True
+			return
 
 		self.timer = self.create_timer(1.0 / self.publish_hz, self.publish_imu)
 		self._warned_not_ready = False
-		self.get_logger().info(f'Publishing IMU data on {self.topic_name} from I2C address 0x{self.i2c_address:02x}')
+		self.get_logger().info(f'Publishing IMU data on {self.topic_name} @ {self.publish_hz:.1f}Hz')
 
 	def publish_imu(self):
-		quaternion = self.imu.quaternion
-		acceleration = self.imu.linear_acceleration
-		gyro = self.imu.gyro
+		if self.imu is None:
+			return
 
-		if quaternion is None or acceleration is None or gyro is None:
+		try:
+			quaternion = self.imu.quaternion
+		except Exception as e:
+			quaternion = None
+		
+		try:
+			acceleration = self.imu.linear_acceleration
+		except Exception as e:
+			acceleration = None
+		
+		try:
+			gyro = self.imu.gyro
+		except Exception as e:
+			gyro = None
+
+		# Must have at least quaternion
+		if quaternion is None:
 			if not self._warned_not_ready:
-				self.get_logger().warn('IMU sample not ready yet')
+				self.get_logger().debug('IMU sample not ready yet (no quaternion)')
 				self._warned_not_ready = True
 			return
+		
 		self._warned_not_ready = False
 
 		quat_i, quat_j, quat_k, quat_real = quaternion
-		accel_x, accel_y, accel_z = acceleration
-		gyro_x, gyro_y, gyro_z = gyro
+		
+		# Use defaults if accel/gyro not available
+		if acceleration is not None:
+			accel_x, accel_y, accel_z = acceleration
+		else:
+			accel_x = accel_y = accel_z = 0.0
+		
+		if gyro is not None:
+			gyro_x, gyro_y, gyro_z = gyro
+		else:
+			gyro_x = gyro_y = gyro_z = 0.0
 
 		msg = Imu()
 		msg.header.stamp = self.get_clock().now().to_msg()
@@ -95,6 +161,17 @@ class ImuOdom(Node):
 		]
 
 		self.publisher.publish(msg)
+
+	def _on_imu_error(self, exc: Exception):
+		self.get_logger().error(f'IMU error: {exc}')
+
+	def destroy_node(self):
+		try:
+			if getattr(self, 'i2c', None) is not None:
+				self.i2c.deinit()
+		except Exception:
+			pass
+		super().destroy_node()
 
 
 def main(args=None):

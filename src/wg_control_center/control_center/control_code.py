@@ -50,8 +50,12 @@ class control_node(Node):
 
         if type == headers.left:
             self.pwm_l.ChangeDutyCycle(msg.left_cycle)
-            
-            
+            self.left_direction = msg.left_direction
+            GPIO.output(self.direction_pin_l, self.left_direction)
+        elif type == headers.right:
+            self.pwm_r.ChangeDutyCycle(msg.right_cycle)
+            self.right_direction = msg.right_direction
+            GPIO.output(self.direction_pin_r, self.right_direction)
 
 def main(args=None):
     rclpy.init(args=args)

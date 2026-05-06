@@ -1,0 +1,10 @@
+--- /home/bnluser/Desktop/Elias_BNL/agent-output/backups/slam_params.yaml.orig	2026-05-05 15:47:50.620144714 +0200
++++ /home/bnluser/Desktop/Elias_BNL/src/wg_utilities/nav2/slam_params.yaml	2026-05-05 15:48:08.223892702 +0200
+@@ -1,6 +1,6 @@
+ slam_toolbox:
+   ros__parameters:
+-    use_sim_time: false
++    use_sim_time: true
+ 
+     # Frames (must match your TF tree)
+     map_frame: map

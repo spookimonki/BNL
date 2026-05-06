@@ -6,7 +6,6 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from wg_interface.msg import ControlEvent
 import RPi.GPIO as GPIO
-from wg_utilities.data_utilities import headers  # type: ignore[import-not-found]
 
 class VelToPwmNode(Node):
     def __init__(self):
@@ -14,7 +13,7 @@ class VelToPwmNode(Node):
 
         # Parameters
         self.declare_parameter('cmd_vel_topic', '/cmd_vel')
-        self.declare_parameter('odom_topic', '/odom/raw')
+        self.declare_parameter('odom_topic', '/odom')
         self.declare_parameter('control_event_topic', '/control_event')
         self.declare_parameter('max_pwm', 255)
         self.declare_parameter('wheel_diameter', 0.055)   # meters (5.5 cm)
@@ -155,8 +154,8 @@ class VelToPwmNode(Node):
             self._pwm_left.stop()
             self._pwm_right.stop()
             GPIO.cleanup()
-        except Exception:
-            pass
+        except (RuntimeError, AttributeError) as e:
+            self.get_logger().warning(f'Error during cleanup: {e}')
         super().destroy_node()
 
 def set_dir_pins(g_fwd, g_rev, sign):

@@ -1,0 +1,24 @@
+Patch summary for the real-mode Nav2 + SLAM bringup
+
+1. src/wg_bringup/launch/wg.launch.py
+- Real mode now starts robot interfaces, navigation_launch.py, and SLAM Toolbox.
+- Sim mode retains the Gazebo path.
+- robot_state_publisher is fed from the source static_tf.urdf.
+- Nav2 and SLAM parameter files are read from the source workspace paths.
+
+2. src/wg_utilities/nav2/nav2_param.yaml
+- local_costmap width changed to 3
+- local_costmap height changed to 3
+
+3. src/wg_sensor_pullup/elias_relay/wheelodom.py
+- Default odom topic changed from /odom/raw to /odom.
+- GPIO failures now fall back to publishing odom without encoder input instead of crashing.
+
+4. src/wg_sensor_pullup/elias_relay/vel_to_pmw.py
+- Default odom topic changed from /odom/raw to /odom.
+
+5. src/wg_sensor_pullup/setup.py
+- Added console scripts for imuodom, wheelodom, lidar_relay, and vel_to_pmw.
+
+6. src/wg_sensor_pullup/elias_relay/__init__.py
+- Added package initializer so console scripts can import the relay modules.

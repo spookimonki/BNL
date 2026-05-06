@@ -16,8 +16,8 @@ wheel_odom:
 
 imu:
   # IMU sensor
-  sensor_type: MPU6050          # or ICM20948, BNO055, etc.
-  i2c_address: 0x68             # 7-bit I2C address
+  sensor_type: BNO08X           # 9-axis IMU with rotation vector
+  i2c_address: 0x4A             # 7-bit I2C address (verified with i2cdetect)
   i2c_bus: 1                    # Raspberry Pi I2C-1 (pins GPIO 2 & 3)
   
   # Accelerometer calibration (gravity component to remove)
@@ -48,7 +48,7 @@ hardware_notes: |
   - Encoders: quadrature (2-phase), read from GPIO interrupt pins
   - Motor 1 (right): GPIO 4/17
   - Motor 2 (left): GPIO 5/6
-  - IMU: I2C address 0x68 on I2C-1 (default for MPU6050)
+  - IMU: BNO08X at I2C address 0x4A on I2C-1, mounted upside-down (Y+ pointing right when robot standing normal)
   - LiDAR: LD06 on Raspberry Pi UART pins 8 (TXD GPIO 14) and 10 (RXD GPIO 15), use /dev/serial0
   
   TODO: Measure and fill in actual values before first test:

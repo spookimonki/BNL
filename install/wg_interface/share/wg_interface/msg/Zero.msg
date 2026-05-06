@@ -1,1 +1,1 @@
-# bare en placeholder fil intil videre
+/home/bnluser/Desktop/Elias_BNL/src/wg_interface/msg/Zero.msg

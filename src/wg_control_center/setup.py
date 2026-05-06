@@ -24,7 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'control_center_exec = control_center.control_code:mains'
+            'control_center_exec = control_center.servo_control:main'
         ],
     },
 )

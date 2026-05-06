@@ -51,7 +51,7 @@ class ros_picamera(Node):
                 continue
 
             with self.lock:
-                self.latest_frame = None
+                self.latest_frame = raw_image
 
     def image_callback(self):
         with self.lock:
@@ -60,8 +60,8 @@ class ros_picamera(Node):
 
         if frame is None:
             return
-        
-        image_array = np.frombuffer(frame, dtype=np.uint8).reshape((self.width, self.height))
+
+        image_array = np.frombuffer(frame, dtype=np.uint8).reshape((self.height, self.width))
 
         bgr_image = cv2.cvtColor(image_array, cv2.COLOR_BAYER_BG2BGR)
 
